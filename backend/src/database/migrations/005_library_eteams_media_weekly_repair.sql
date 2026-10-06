@@ -9,16 +9,68 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- 1. RECONCILE WEEKLY PROGRAMMES
 -- Accommodate day, title, time, venue, leader, description, active, display_order
-ALTER TABLE weekly_programmes
-  ADD COLUMN IF NOT EXISTS day VARCHAR(20) NOT NULL DEFAULT 'Sunday' AFTER id,
-  ADD COLUMN IF NOT EXISTS title VARCHAR(200) NOT NULL DEFAULT 'Fellowship Program' AFTER day,
-  ADD COLUMN IF NOT EXISTS time VARCHAR(100) NOT NULL DEFAULT '5:00 PM - 7:00 PM' AFTER programme_type,
-  ADD COLUMN IF NOT EXISTS leader VARCHAR(150) NULL AFTER venue,
-  ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER leader,
-  ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE AFTER description,
-  ADD COLUMN IF NOT EXISTS display_order SMALLINT NOT NULL DEFAULT 1 AFTER is_active,
-  ADD COLUMN IF NOT EXISTS alternating_mode ENUM('none','monday_alternate','custom') NOT NULL DEFAULT 'none' AFTER display_order,
-  ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL AFTER created_at;
+-- Idempotent MySQL column addition: weekly_programmes.day
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'weekly_programmes' AND column_name = 'day');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520607765656b6c795f70726f6772616d6d6573602041444420434f4c554d4e206064617960205641524348415228323029204e4f54204e554c4c2044454641554c54202753756e64617927204146544552206964 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: weekly_programmes.title
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'weekly_programmes' AND column_name = 'title');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520607765656b6c795f70726f6772616d6d6573602041444420434f4c554d4e20607469746c656020564152434841522832303029204e4f54204e554c4c2044454641554c54202746656c6c6f77736869702050726f6772616d2720414654455220646179 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: weekly_programmes.time
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'weekly_programmes' AND column_name = 'time');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520607765656b6c795f70726f6772616d6d6573602041444420434f4c554d4e206074696d656020564152434841522831303029204e4f54204e554c4c2044454641554c542027353a303020504d202d20373a303020504d272041465445522070726f6772616d6d655f74797065 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: weekly_programmes.leader
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'weekly_programmes' AND column_name = 'leader');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520607765656b6c795f70726f6772616d6d6573602041444420434f4c554d4e20606c65616465726020564152434841522831353029204e554c4c2041465445522076656e7565 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: weekly_programmes.description
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'weekly_programmes' AND column_name = 'description');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520607765656b6c795f70726f6772616d6d6573602041444420434f4c554d4e20606465736372697074696f6e602054455854204e554c4c204146544552206c6561646572 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: weekly_programmes.is_active
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'weekly_programmes' AND column_name = 'is_active');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520607765656b6c795f70726f6772616d6d6573602041444420434f4c554d4e206069735f6163746976656020424f4f4c45414e204e4f54204e554c4c2044454641554c542054525545204146544552206465736372697074696f6e USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: weekly_programmes.display_order
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'weekly_programmes' AND column_name = 'display_order');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520607765656b6c795f70726f6772616d6d6573602041444420434f4c554d4e2060646973706c61795f6f726465726020534d414c4c494e54204e4f54204e554c4c2044454641554c5420312041465445522069735f616374697665 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: weekly_programmes.alternating_mode
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'weekly_programmes' AND column_name = 'alternating_mode');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520607765656b6c795f70726f6772616d6d6573602041444420434f4c554d4e2060616c7465726e6174696e675f6d6f64656020454e554d28276e6f6e65272c276d6f6e6461795f616c7465726e617465272c27637573746f6d2729204e4f54204e554c4c2044454641554c5420276e6f6e652720414654455220646973706c61795f6f72646572 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: weekly_programmes.updated_at
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'weekly_programmes' AND column_name = 'updated_at');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520607765656b6c795f70726f6772616d6d6573602041444420434f4c554d4e2060757064617465645f617460204441544554494d45204e554c4c20414654455220637265617465645f6174 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
 
 -- Allow scheduled_at and created_by to be nullable if used in simple weekly schedule mode
 ALTER TABLE weekly_programmes
@@ -26,44 +78,204 @@ ALTER TABLE weekly_programmes
   MODIFY COLUMN created_by CHAR(36) NULL;
 
 -- 2. ENHANCE MINISTRIES FOR PERSISTENT BACKGROUND & BRANDING
-ALTER TABLE ministries
-  ADD COLUMN IF NOT EXISTS background_image_url VARCHAR(500) NULL AFTER description,
-  ADD COLUMN IF NOT EXISTS photo_url VARCHAR(500) NULL AFTER background_image_url,
-  ADD COLUMN IF NOT EXISTS leader_id CHAR(36) NULL AFTER photo_url,
-  ADD COLUMN IF NOT EXISTS meeting_time VARCHAR(100) NULL AFTER leader_id,
-  ADD COLUMN IF NOT EXISTS meeting_venue VARCHAR(200) NULL AFTER meeting_time,
-  ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL;
+-- Idempotent MySQL column addition: ministries.background_image_url
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ministries' AND column_name = 'background_image_url');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606d696e69737472696573602041444420434f4c554d4e20606261636b67726f756e645f696d6167655f75726c6020564152434841522835303029204e554c4c204146544552206465736372697074696f6e USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: ministries.photo_url
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ministries' AND column_name = 'photo_url');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606d696e69737472696573602041444420434f4c554d4e206070686f746f5f75726c6020564152434841522835303029204e554c4c204146544552206261636b67726f756e645f696d6167655f75726c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: ministries.leader_id
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ministries' AND column_name = 'leader_id');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606d696e69737472696573602041444420434f4c554d4e20606c65616465725f696460204348415228333629204e554c4c2041465445522070686f746f5f75726c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: ministries.meeting_time
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ministries' AND column_name = 'meeting_time');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606d696e69737472696573602041444420434f4c554d4e20606d656574696e675f74696d656020564152434841522831303029204e554c4c204146544552206c65616465725f6964 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: ministries.meeting_venue
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ministries' AND column_name = 'meeting_venue');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606d696e69737472696573602041444420434f4c554d4e20606d656574696e675f76656e75656020564152434841522832303029204e554c4c204146544552206d656574696e675f74696d65 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: ministries.updated_at
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ministries' AND column_name = 'updated_at');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606d696e69737472696573602041444420434f4c554d4e2060757064617465645f617460204441544554494d45204e554c4c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
 
 -- 3. ENHANCE LIBRARY RESOURCES FOR PHYSICAL & DIGITAL LIBRARY
-ALTER TABLE library_resources
-  ADD COLUMN IF NOT EXISTS isbn VARCHAR(50) NULL AFTER category,
-  ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER isbn,
-  ADD COLUMN IF NOT EXISTS cover_image_url VARCHAR(500) NULL AFTER description,
-  ADD COLUMN IF NOT EXISTS shelf_location VARCHAR(100) NULL AFTER cover_image_url,
-  ADD COLUMN IF NOT EXISTS condition_status ENUM('excellent','good','fair','needs_repair') NOT NULL DEFAULT 'good' AFTER shelf_location,
-  ADD COLUMN IF NOT EXISTS borrowed_count INT NOT NULL DEFAULT 0 AFTER condition_status,
-  ADD COLUMN IF NOT EXISTS librarian_notes TEXT NULL AFTER borrowed_count,
-  ADD COLUMN IF NOT EXISTS status ENUM('available','maintenance','archived') NOT NULL DEFAULT 'available' AFTER librarian_notes,
-  ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL;
+-- Idempotent MySQL column addition: library_resources.isbn
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_resources' AND column_name = 'isbn');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736f7572636573602041444420434f4c554d4e20606973626e60205641524348415228353029204e554c4c2041465445522063617465676f7279 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_resources.description
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_resources' AND column_name = 'description');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736f7572636573602041444420434f4c554d4e20606465736372697074696f6e602054455854204e554c4c204146544552206973626e USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_resources.cover_image_url
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_resources' AND column_name = 'cover_image_url');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736f7572636573602041444420434f4c554d4e2060636f7665725f696d6167655f75726c6020564152434841522835303029204e554c4c204146544552206465736372697074696f6e USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_resources.shelf_location
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_resources' AND column_name = 'shelf_location');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736f7572636573602041444420434f4c554d4e20607368656c665f6c6f636174696f6e6020564152434841522831303029204e554c4c20414654455220636f7665725f696d6167655f75726c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_resources.condition_status
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_resources' AND column_name = 'condition_status');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736f7572636573602041444420434f4c554d4e2060636f6e646974696f6e5f7374617475736020454e554d2827657863656c6c656e74272c27676f6f64272c2766616972272c276e656564735f7265706169722729204e4f54204e554c4c2044454641554c542027676f6f6427204146544552207368656c665f6c6f636174696f6e USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_resources.borrowed_count
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_resources' AND column_name = 'borrowed_count');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736f7572636573602041444420434f4c554d4e2060626f72726f7765645f636f756e746020494e54204e4f54204e554c4c2044454641554c54203020414654455220636f6e646974696f6e5f737461747573 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_resources.librarian_notes
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_resources' AND column_name = 'librarian_notes');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736f7572636573602041444420434f4c554d4e20606c696272617269616e5f6e6f746573602054455854204e554c4c20414654455220626f72726f7765645f636f756e74 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_resources.status
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_resources' AND column_name = 'status');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736f7572636573602041444420434f4c554d4e20607374617475736020454e554d2827617661696c61626c65272c276d61696e74656e616e6365272c2761726368697665642729204e4f54204e554c4c2044454641554c542027617661696c61626c6527204146544552206c696272617269616e5f6e6f746573 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_resources.updated_at
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_resources' AND column_name = 'updated_at');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736f7572636573602041444420434f4c554d4e2060757064617465645f617460204441544554494d45204e554c4c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
 
 -- 4. ENHANCE LIBRARY BORROWINGS
-ALTER TABLE library_borrowings
-  ADD COLUMN IF NOT EXISTS status ENUM('active','returned','overdue') NOT NULL DEFAULT 'active' AFTER overdue_notice_sent,
-  ADD COLUMN IF NOT EXISTS notes TEXT NULL AFTER status,
-  ADD COLUMN IF NOT EXISTS issued_by CHAR(36) NULL AFTER notes,
-  ADD COLUMN IF NOT EXISTS returned_to CHAR(36) NULL AFTER issued_by,
-  ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL;
+-- Idempotent MySQL column addition: library_borrowings.status
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_borrowings' AND column_name = 'status');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f626f72726f77696e6773602041444420434f4c554d4e20607374617475736020454e554d2827616374697665272c2772657475726e6564272c276f7665726475652729204e4f54204e554c4c2044454641554c54202761637469766527204146544552206f7665726475655f6e6f746963655f73656e74 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_borrowings.notes
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_borrowings' AND column_name = 'notes');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f626f72726f77696e6773602041444420434f4c554d4e20606e6f746573602054455854204e554c4c20414654455220737461747573 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_borrowings.issued_by
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_borrowings' AND column_name = 'issued_by');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f626f72726f77696e6773602041444420434f4c554d4e20606973737565645f627960204348415228333629204e554c4c204146544552206e6f746573 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_borrowings.returned_to
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_borrowings' AND column_name = 'returned_to');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f626f72726f77696e6773602041444420434f4c554d4e206072657475726e65645f746f60204348415228333629204e554c4c204146544552206973737565645f6279 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_borrowings.created_at
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_borrowings' AND column_name = 'created_at');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f626f72726f77696e6773602041444420434f4c554d4e2060637265617465645f617460204441544554494d45204e4f54204e554c4c2044454641554c542043555252454e545f54494d455354414d50 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_borrowings.updated_at
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_borrowings' AND column_name = 'updated_at');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f626f72726f77696e6773602041444420434f4c554d4e2060757064617465645f617460204441544554494d45204e554c4c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
 
 -- 5. ENHANCE LIBRARY RESERVATIONS / REQUESTS
-ALTER TABLE library_reservations
-  ADD COLUMN IF NOT EXISTS needed_date DATE NULL AFTER status,
-  ADD COLUMN IF NOT EXISTS return_period_days SMALLINT NOT NULL DEFAULT 14 AFTER needed_date,
-  ADD COLUMN IF NOT EXISTS notes TEXT NULL AFTER return_period_days,
-  ADD COLUMN IF NOT EXISTS approved_by CHAR(36) NULL AFTER notes,
-  ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL AFTER approved_by,
-  ADD COLUMN IF NOT EXISTS rejected_reason VARCHAR(255) NULL AFTER approved_at,
-  ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL;
+-- Idempotent MySQL column addition: library_reservations.needed_date
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_reservations' AND column_name = 'needed_date');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736572766174696f6e73602041444420434f4c554d4e20606e65656465645f64617465602044415445204e554c4c20414654455220737461747573 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_reservations.return_period_days
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_reservations' AND column_name = 'return_period_days');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736572766174696f6e73602041444420434f4c554d4e206072657475726e5f706572696f645f646179736020534d414c4c494e54204e4f54204e554c4c2044454641554c54203134204146544552206e65656465645f64617465 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_reservations.notes
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_reservations' AND column_name = 'notes');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736572766174696f6e73602041444420434f4c554d4e20606e6f746573602054455854204e554c4c2041465445522072657475726e5f706572696f645f64617973 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_reservations.approved_by
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_reservations' AND column_name = 'approved_by');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736572766174696f6e73602041444420434f4c554d4e2060617070726f7665645f627960204348415228333629204e554c4c204146544552206e6f746573 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_reservations.approved_at
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_reservations' AND column_name = 'approved_at');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736572766174696f6e73602041444420434f4c554d4e2060617070726f7665645f617460204441544554494d45204e554c4c20414654455220617070726f7665645f6279 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_reservations.rejected_reason
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_reservations' AND column_name = 'rejected_reason');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736572766174696f6e73602041444420434f4c554d4e206072656a65637465645f726561736f6e6020564152434841522832353529204e554c4c20414654455220617070726f7665645f6174 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: library_reservations.updated_at
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_reservations' AND column_name = 'updated_at');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736572766174696f6e73602041444420434f4c554d4e2060757064617465645f617460204441544554494d45204e554c4c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
 
 -- Modify reservation status enum if needed to support full workflow
 ALTER TABLE library_reservations
@@ -122,19 +334,89 @@ CREATE TABLE IF NOT EXISTS gallery_albums (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 8. ENHANCE EVANGELISM TEAMS FOR NORET & SORET
-ALTER TABLE evangelism_teams
-  ADD COLUMN IF NOT EXISTS short_name VARCHAR(50) NULL AFTER name,
-  ADD COLUMN IF NOT EXISTS region VARCHAR(100) NULL AFTER short_name,
-  ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER region,
-  ADD COLUMN IF NOT EXISTS mission_purpose TEXT NULL AFTER description,
-  ADD COLUMN IF NOT EXISTS vision TEXT NULL AFTER mission_purpose,
-  ADD COLUMN IF NOT EXISTS scripture_theme VARCHAR(255) NULL AFTER vision,
-  ADD COLUMN IF NOT EXISTS cover_image_url VARCHAR(500) NULL AFTER scripture_theme,
-  ADD COLUMN IF NOT EXISTS logo_url VARCHAR(500) NULL AFTER cover_image_url,
-  ADD COLUMN IF NOT EXISTS meeting_schedule VARCHAR(200) NULL AFTER logo_url,
-  ADD COLUMN IF NOT EXISTS meeting_venue VARCHAR(200) NULL AFTER meeting_schedule,
-  ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE AFTER meeting_venue,
-  ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL;
+-- Idempotent MySQL column addition: evangelism_teams.short_name
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'short_name');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e206073686f72745f6e616d6560205641524348415228353029204e554c4c204146544552206e616d65 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.region
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'region');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e2060726567696f6e6020564152434841522831303029204e554c4c2041465445522073686f72745f6e616d65 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.description
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'description');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e20606465736372697074696f6e602054455854204e554c4c20414654455220726567696f6e USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.mission_purpose
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'mission_purpose');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e20606d697373696f6e5f707572706f7365602054455854204e554c4c204146544552206465736372697074696f6e USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.vision
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'vision');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e2060766973696f6e602054455854204e554c4c204146544552206d697373696f6e5f707572706f7365 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.scripture_theme
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'scripture_theme');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e20607363726970747572655f7468656d656020564152434841522832353529204e554c4c20414654455220766973696f6e USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.cover_image_url
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'cover_image_url');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e2060636f7665725f696d6167655f75726c6020564152434841522835303029204e554c4c204146544552207363726970747572655f7468656d65 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.logo_url
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'logo_url');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e20606c6f676f5f75726c6020564152434841522835303029204e554c4c20414654455220636f7665725f696d6167655f75726c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.meeting_schedule
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'meeting_schedule');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e20606d656574696e675f7363686564756c656020564152434841522832303029204e554c4c204146544552206c6f676f5f75726c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.meeting_venue
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'meeting_venue');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e20606d656574696e675f76656e75656020564152434841522832303029204e554c4c204146544552206d656574696e675f7363686564756c65 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.is_active
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'is_active');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e206069735f6163746976656020424f4f4c45414e204e4f54204e554c4c2044454641554c542054525545204146544552206d656574696e675f76656e7565 USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Idempotent MySQL column addition: evangelism_teams.updated_at
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'evangelism_teams' AND column_name = 'updated_at');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606576616e67656c69736d5f7465616d73602041444420434f4c554d4e2060757064617465645f617460204441544554494d45204e554c4c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
 
 -- 9. E-TEAM PROGRAMMES & ACTIVITIES
 CREATE TABLE IF NOT EXISTS eteam_programmes (

@@ -70,7 +70,12 @@ UPDATE evangelism_teams SET name = 'NET MINISTRIES TRUST TUM UNIT' WHERE code = 
 UPDATE evangelism_teams SET name = 'NORET-SORET' WHERE code = 'SORET';
 
 -- Add missing media/leadership metadata columns where an older database lacks them.
-ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT NULL AFTER passport_photo_url;
+-- Idempotent MySQL column addition: users.bio
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'users' AND column_name = 'bio');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520607573657273602041444420434f4c554d4e206062696f602054455854204e554c4c2041465445522070617373706f72745f70686f746f5f75726c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
 
 -- Make the primary landing media row deterministic if it does not yet exist.
 INSERT IGNORE INTO landing_media_config

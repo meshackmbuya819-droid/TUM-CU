@@ -21,7 +21,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- CHAPTER 1 — USER MANAGEMENT
 -- ============================================================================
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id                      CHAR(36)      NOT NULL PRIMARY KEY,
     username                VARCHAR(50)   NOT NULL UNIQUE,
     email                   VARCHAR(150)  NOT NULL UNIQUE,
@@ -72,7 +72,7 @@ CREATE TABLE users (
 
 -- A user may belong to a mentorship group / bible study group even before
 -- discipleship-specific tables are joined; kept here as it's core profile data.
-CREATE TABLE user_spiritual_groups (
+CREATE TABLE IF NOT EXISTS user_spiritual_groups (
     id                CHAR(36)  NOT NULL PRIMARY KEY,
     user_id           CHAR(36)  NOT NULL,
     mentorship_group_id CHAR(36) NULL,
@@ -82,7 +82,7 @@ CREATE TABLE user_spiritual_groups (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- FKs to mentorship_group_id / bible_study_group_id added after Ch.9 tables exist.
 
-CREATE TABLE login_devices (
+CREATE TABLE IF NOT EXISTS login_devices (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     device_name   VARCHAR(150) NULL,
@@ -100,7 +100,7 @@ CREATE TABLE login_devices (
 -- CHAPTER 2 — AUTHENTICATION
 -- ============================================================================
 
-CREATE TABLE refresh_tokens (
+CREATE TABLE IF NOT EXISTS refresh_tokens (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     token_hash    VARCHAR(255) NOT NULL,
@@ -113,7 +113,7 @@ CREATE TABLE refresh_tokens (
     INDEX idx_rt_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE otp_codes (
+CREATE TABLE IF NOT EXISTS otp_codes (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     purpose       ENUM('email_verification','login_2fa','password_reset','phone_verification')
@@ -126,7 +126,7 @@ CREATE TABLE otp_codes (
     INDEX idx_otp_user_purpose (user_id, purpose)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE password_resets (
+CREATE TABLE IF NOT EXISTS password_resets (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     token_hash    VARCHAR(255) NOT NULL,
@@ -136,7 +136,7 @@ CREATE TABLE password_resets (
     CONSTRAINT fk_pr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE user_sessions (
+CREATE TABLE IF NOT EXISTS user_sessions (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     device_id     CHAR(36) NULL,
@@ -151,7 +151,7 @@ CREATE TABLE user_sessions (
 -- CHAPTER 3 — ROLES & PERMISSIONS (database-driven RBAC)
 -- ============================================================================
 
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     code          VARCHAR(50)  NOT NULL UNIQUE,   -- e.g. 'chairperson', 'secretary', 'super_admin'
     name          VARCHAR(100) NOT NULL,
@@ -162,14 +162,14 @@ CREATE TABLE roles (
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE permissions (
+CREATE TABLE IF NOT EXISTS permissions (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     code          VARCHAR(100) NOT NULL UNIQUE,   -- e.g. 'reports.view_all', 'finance.approve_expense'
     module        VARCHAR(50)  NOT NULL,          -- e.g. 'finance', 'membership', 'audit'
     description   TEXT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE role_permissions (
+CREATE TABLE IF NOT EXISTS role_permissions (
     role_id       CHAR(36)  NOT NULL,
     permission_id CHAR(36)  NOT NULL,
     PRIMARY KEY (role_id, permission_id),
@@ -179,7 +179,7 @@ CREATE TABLE role_permissions (
 
 -- A user can hold multiple roles concurrently (e.g. Ministry Leader + Committee Member).
 -- Time-bounded to naturally support leadership transition / handover history.
-CREATE TABLE user_roles (
+CREATE TABLE IF NOT EXISTS user_roles (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     role_id       CHAR(36)  NOT NULL,
@@ -197,7 +197,7 @@ CREATE TABLE user_roles (
     INDEX idx_ur_scope (scope_type, scope_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NULL,             -- nullable: system-triggered events
     action        VARCHAR(100) NOT NULL,      -- e.g. 'member.approve', 'expense.approve'
@@ -218,7 +218,7 @@ CREATE TABLE audit_logs (
 -- CHAPTER 4 — MEMBERSHIP MANAGEMENT
 -- ============================================================================
 
-CREATE TABLE membership_types (
+CREATE TABLE IF NOT EXISTS membership_types (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     code          ENUM('full','special','associate') NOT NULL UNIQUE,
     name          VARCHAR(50) NOT NULL,
@@ -226,7 +226,7 @@ CREATE TABLE membership_types (
     rights_summary TEXT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE spiritual_years (
+CREATE TABLE IF NOT EXISTS spiritual_years (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     label         VARCHAR(20) NOT NULL UNIQUE,   -- e.g. '2025/2026'
     start_date    DATE NOT NULL,
@@ -234,7 +234,7 @@ CREATE TABLE spiritual_years (
     is_current    BOOLEAN NOT NULL DEFAULT FALSE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE membership_declarations (
+CREATE TABLE IF NOT EXISTS membership_declarations (
     id                CHAR(36)  NOT NULL PRIMARY KEY,
     declaration_text  TEXT      NOT NULL,   -- versioned wording, per constitution
     version           VARCHAR(20) NOT NULL,
@@ -242,7 +242,7 @@ CREATE TABLE membership_declarations (
     created_at        DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE memberships (
+CREATE TABLE IF NOT EXISTS memberships (
     id                    CHAR(36)  NOT NULL PRIMARY KEY,
     user_id               CHAR(36)  NOT NULL,
     membership_number     VARCHAR(30) NOT NULL UNIQUE,
@@ -265,7 +265,7 @@ CREATE TABLE memberships (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Application/approval workflow: Application -> Review -> Approval -> Number Generated -> Welcome -> Register
-CREATE TABLE membership_applications (
+CREATE TABLE IF NOT EXISTS membership_applications (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     membership_type_id CHAR(36) NOT NULL,
@@ -285,7 +285,7 @@ CREATE TABLE membership_applications (
 -- CHAPTER 5 — EXECUTIVE COMMITTEE MANAGEMENT
 -- ============================================================================
 
-CREATE TABLE executive_positions (
+CREATE TABLE IF NOT EXISTS executive_positions (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     code          VARCHAR(50) NOT NULL UNIQUE,  -- e.g. 'chairperson', 'treasurer'
     title         VARCHAR(100) NOT NULL,
@@ -293,7 +293,7 @@ CREATE TABLE executive_positions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Holds current + historical occupants of each executive office (handover trail).
-CREATE TABLE executive_terms (
+CREATE TABLE IF NOT EXISTS executive_terms (
     id                CHAR(36)  NOT NULL PRIMARY KEY,
     executive_position_id CHAR(36) NOT NULL,
     user_id           CHAR(36)  NOT NULL,
@@ -313,7 +313,7 @@ CREATE TABLE executive_terms (
 -- CHAPTER 6 — ADVISORY BOARD
 -- ============================================================================
 
-CREATE TABLE advisory_board_members (
+CREATE TABLE IF NOT EXISTS advisory_board_members (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NULL,          -- nullable: external professional advisers may not be app users
     external_name VARCHAR(150) NULL,
@@ -325,7 +325,7 @@ CREATE TABLE advisory_board_members (
     CONSTRAINT fk_abm_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE advisory_recommendations (
+CREATE TABLE IF NOT EXISTS advisory_recommendations (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     advisory_board_member_id CHAR(36) NOT NULL,
     subject       VARCHAR(200) NOT NULL,
@@ -335,7 +335,7 @@ CREATE TABLE advisory_recommendations (
     CONSTRAINT fk_arec_member FOREIGN KEY (advisory_board_member_id) REFERENCES advisory_board_members(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE constitution_reviews (
+CREATE TABLE IF NOT EXISTS constitution_reviews (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     reviewed_by   CHAR(36)  NOT NULL,
     review_date   DATE NOT NULL,
@@ -348,7 +348,7 @@ CREATE TABLE constitution_reviews (
 -- CHAPTER 7 — COMMITTEE MANAGEMENT (generic, reusable for all committees)
 -- ============================================================================
 
-CREATE TABLE committees (
+CREATE TABLE IF NOT EXISTS committees (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     code          VARCHAR(50) NOT NULL UNIQUE,  -- e.g. 'prayer', 'welfare', 'assets'
     name          VARCHAR(150) NOT NULL,
@@ -356,7 +356,7 @@ CREATE TABLE committees (
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE committee_members (
+CREATE TABLE IF NOT EXISTS committee_members (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     committee_id  CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -370,7 +370,7 @@ CREATE TABLE committee_members (
     UNIQUE KEY uq_committee_user_year (committee_id, user_id, spiritual_year_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE committee_budgets (
+CREATE TABLE IF NOT EXISTS committee_budgets (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     committee_id  CHAR(36)  NOT NULL,
     spiritual_year_id CHAR(36) NOT NULL,
@@ -380,7 +380,7 @@ CREATE TABLE committee_budgets (
     CONSTRAINT fk_cb_year FOREIGN KEY (spiritual_year_id) REFERENCES spiritual_years(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE committee_documents (
+CREATE TABLE IF NOT EXISTS committee_documents (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     committee_id  CHAR(36)  NOT NULL,
     title         VARCHAR(200) NOT NULL,
@@ -395,7 +395,7 @@ CREATE TABLE committee_documents (
 -- CHAPTER 8 — MINISTRY MANAGEMENT (generic, reusable for all ministries)
 -- ============================================================================
 
-CREATE TABLE ministries (
+CREATE TABLE IF NOT EXISTS ministries (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     code          VARCHAR(50) NOT NULL UNIQUE,   -- e.g. 'intercessory', 'worship', 'media'
     name          VARCHAR(150) NOT NULL,
@@ -403,7 +403,7 @@ CREATE TABLE ministries (
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE ministry_members (
+CREATE TABLE IF NOT EXISTS ministry_members (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     ministry_id   CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -417,7 +417,7 @@ CREATE TABLE ministry_members (
     UNIQUE KEY uq_ministry_user_year (ministry_id, user_id, spiritual_year_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE ministry_trainings (
+CREATE TABLE IF NOT EXISTS ministry_trainings (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     ministry_id   CHAR(36)  NOT NULL,
     title         VARCHAR(200) NOT NULL,
@@ -433,7 +433,7 @@ CREATE TABLE ministry_trainings (
 --  module in the fuller spec, included here since 5–8 all reference meetings.)
 -- ============================================================================
 
-CREATE TABLE meetings (
+CREATE TABLE IF NOT EXISTS meetings (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     title         VARCHAR(200) NOT NULL,
     context_type  ENUM('executive','advisory_board','committee','ministry','general') NOT NULL,
@@ -446,7 +446,7 @@ CREATE TABLE meetings (
     CONSTRAINT fk_meet_caller FOREIGN KEY (called_by) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE meeting_minutes (
+CREATE TABLE IF NOT EXISTS meeting_minutes (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     meeting_id    CHAR(36)  NOT NULL UNIQUE,
     recorded_by   CHAR(36)  NOT NULL,
@@ -460,7 +460,7 @@ CREATE TABLE meeting_minutes (
     CONSTRAINT fk_min_approver FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE meeting_resolutions (
+CREATE TABLE IF NOT EXISTS meeting_resolutions (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     meeting_id    CHAR(36)  NOT NULL,
     description   TEXT      NOT NULL,
@@ -472,7 +472,7 @@ CREATE TABLE meeting_resolutions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Generic attendance table, reused for meetings, fellowships, events, ministry sessions.
-CREATE TABLE attendance_records (
+CREATE TABLE IF NOT EXISTS attendance_records (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     attendable_type ENUM('meeting','event','ministry_session','committee_session') NOT NULL,
     attendable_id CHAR(36)  NOT NULL,
@@ -484,7 +484,7 @@ CREATE TABLE attendance_records (
     INDEX idx_att_attendable (attendable_type, attendable_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     title         VARCHAR(200) NOT NULL,
     event_type    ENUM('weekly_fellowship','kesha','worship_night','conference','missions',
@@ -503,7 +503,7 @@ CREATE TABLE events (
 -- CHAPTER 9 — DISCIPLESHIP MODULE
 -- ============================================================================
 
-CREATE TABLE new_believers_classes (
+CREATE TABLE IF NOT EXISTS new_believers_classes (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     title         VARCHAR(150) NOT NULL,
     facilitator_id CHAR(36) NOT NULL,
@@ -512,7 +512,7 @@ CREATE TABLE new_believers_classes (
     CONSTRAINT fk_nbc_facilitator FOREIGN KEY (facilitator_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE new_believers_enrollments (
+CREATE TABLE IF NOT EXISTS new_believers_enrollments (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     class_id      CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -523,7 +523,7 @@ CREATE TABLE new_believers_enrollments (
     UNIQUE KEY uq_class_user (class_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE foundations_classes (
+CREATE TABLE IF NOT EXISTS foundations_classes (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     title         VARCHAR(150) NOT NULL,
     facilitator_id CHAR(36) NOT NULL,
@@ -532,7 +532,7 @@ CREATE TABLE foundations_classes (
     CONSTRAINT fk_fc_facilitator FOREIGN KEY (facilitator_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE foundations_enrollments (
+CREATE TABLE IF NOT EXISTS foundations_enrollments (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     class_id      CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -543,7 +543,7 @@ CREATE TABLE foundations_enrollments (
     UNIQUE KEY uq_fclass_user (class_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE bible_study_groups (
+CREATE TABLE IF NOT EXISTS bible_study_groups (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     name          VARCHAR(150) NOT NULL,
     leader_id     CHAR(36)  NOT NULL,
@@ -553,7 +553,7 @@ CREATE TABLE bible_study_groups (
     CONSTRAINT fk_bsg_leader FOREIGN KEY (leader_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE bible_study_members (
+CREATE TABLE IF NOT EXISTS bible_study_members (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     group_id      CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -563,7 +563,7 @@ CREATE TABLE bible_study_members (
     UNIQUE KEY uq_bsgroup_user (group_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE mentorship_groups (
+CREATE TABLE IF NOT EXISTS mentorship_groups (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     name          VARCHAR(150) NOT NULL,
     mentor_id     CHAR(36)  NOT NULL,
@@ -572,7 +572,7 @@ CREATE TABLE mentorship_groups (
     CONSTRAINT fk_mg_year FOREIGN KEY (spiritual_year_id) REFERENCES spiritual_years(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE mentorship_members (
+CREATE TABLE IF NOT EXISTS mentorship_members (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     mentorship_group_id CHAR(36) NOT NULL,
     mentee_id     CHAR(36)  NOT NULL,
@@ -583,7 +583,7 @@ CREATE TABLE mentorship_members (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- One-on-one follow-up records, distinct from group mentorship.
-CREATE TABLE followup_sessions (
+CREATE TABLE IF NOT EXISTS followup_sessions (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     mentor_id     CHAR(36)  NOT NULL,
     mentee_id     CHAR(36)  NOT NULL,
@@ -593,7 +593,7 @@ CREATE TABLE followup_sessions (
     CONSTRAINT fk_fs_mentee FOREIGN KEY (mentee_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE bible_reading_plans (
+CREATE TABLE IF NOT EXISTS bible_reading_plans (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     title         VARCHAR(150) NOT NULL,
     description   TEXT NULL,
@@ -603,7 +603,7 @@ CREATE TABLE bible_reading_plans (
     CONSTRAINT fk_brp_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE bible_reading_progress (
+CREATE TABLE IF NOT EXISTS bible_reading_progress (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     plan_id       CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -614,7 +614,7 @@ CREATE TABLE bible_reading_progress (
     UNIQUE KEY uq_plan_user_date (plan_id, user_id, reading_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE memory_verses (
+CREATE TABLE IF NOT EXISTS memory_verses (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     reference     VARCHAR(50) NOT NULL,     -- e.g. 'John 3:16'
     text          TEXT NOT NULL,
@@ -623,7 +623,7 @@ CREATE TABLE memory_verses (
     CONSTRAINT fk_mv_plan FOREIGN KEY (plan_id) REFERENCES bible_reading_plans(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE memory_verse_completions (
+CREATE TABLE IF NOT EXISTS memory_verse_completions (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     memory_verse_id CHAR(36) NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -633,7 +633,7 @@ CREATE TABLE memory_verse_completions (
     UNIQUE KEY uq_verse_user (memory_verse_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE training_certificates (
+CREATE TABLE IF NOT EXISTS training_certificates (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     title         VARCHAR(150) NOT NULL,     -- e.g. 'Foundations Class Certificate'
@@ -645,7 +645,7 @@ CREATE TABLE training_certificates (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Rollup profile view of a member's discipleship journey (support tool, not a worth-score).
-CREATE TABLE discipleship_profiles (
+CREATE TABLE IF NOT EXISTS discipleship_profiles (
     id                    CHAR(36)  NOT NULL PRIMARY KEY,
     user_id               CHAR(36)  NOT NULL UNIQUE,
     new_believers_class_status ENUM('not_started','in_progress','completed') NOT NULL DEFAULT 'not_started',
@@ -672,7 +672,7 @@ ALTER TABLE user_spiritual_groups
 -- CORE: NOTIFICATIONS (referenced throughout — registration, renewal, approvals)
 -- ============================================================================
 
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     type          VARCHAR(50) NOT NULL,   -- e.g. 'membership_renewal_due', 'welcome', 'meeting_reminder'

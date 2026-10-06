@@ -35,7 +35,7 @@ ALTER TABLE meetings
     ADD CONSTRAINT fk_meet_chair FOREIGN KEY (chairperson_id) REFERENCES users(id) ON DELETE SET NULL,
     ADD CONSTRAINT fk_meet_secretary FOREIGN KEY (secretary_id) REFERENCES users(id) ON DELETE SET NULL;
 
-CREATE TABLE meeting_agenda_items (
+CREATE TABLE IF NOT EXISTS meeting_agenda_items (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     meeting_id    CHAR(36)  NOT NULL,
     title         VARCHAR(200) NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE meeting_agenda_items (
     CONSTRAINT fk_mai_presenter FOREIGN KEY (presenter_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE meeting_agenda_documents (
+CREATE TABLE IF NOT EXISTS meeting_agenda_documents (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     agenda_item_id CHAR(36) NOT NULL,
     file_url      VARCHAR(500) NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE meeting_agenda_documents (
     CONSTRAINT fk_mad_uploader FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE meeting_votes (
+CREATE TABLE IF NOT EXISTS meeting_votes (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     agenda_item_id CHAR(36) NOT NULL,
     voter_id      CHAR(36)  NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE meeting_votes (
     UNIQUE KEY uq_item_voter (agenda_item_id, voter_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE meeting_attendance_confirmations (
+CREATE TABLE IF NOT EXISTS meeting_attendance_confirmations (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     meeting_id    CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -101,7 +101,7 @@ ALTER TABLE meeting_resolutions
 -- CHAPTER 11 — WEEKLY PROGRAMME MANAGEMENT
 -- ============================================================================
 
-CREATE TABLE weekly_programmes (
+CREATE TABLE IF NOT EXISTS weekly_programmes (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     programme_type ENUM('sunday_service','midweek_fellowship','bible_study','prayer_meeting',
                           'overnight_kesha','evangelism','leadership_meeting','committee_meeting',
@@ -118,7 +118,7 @@ CREATE TABLE weekly_programmes (
 
 -- Role assignments for a programme (speaker, worship leader, ushers, media, etc.)
 -- Generic rather than one column per role, so new roles don't require schema changes.
-CREATE TABLE programme_role_assignments (
+CREATE TABLE IF NOT EXISTS programme_role_assignments (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     programme_id  CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -132,7 +132,7 @@ CREATE TABLE programme_role_assignments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Drag-and-drop service flow: ordered list of segments per programme.
-CREATE TABLE service_flow_items (
+CREATE TABLE IF NOT EXISTS service_flow_items (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     programme_id  CHAR(36)  NOT NULL,
     segment       VARCHAR(100) NOT NULL,   -- e.g. 'Opening Prayer', 'Praise', 'Sermon'
@@ -160,7 +160,7 @@ ALTER TABLE attendance_records
 
 -- Precomputed engagement flag per member per spiritual year, refreshed by a
 -- scheduled job — avoids expensive full-table scans for "inactive member" alerts.
-CREATE TABLE member_engagement_snapshots (
+CREATE TABLE IF NOT EXISTS member_engagement_snapshots (
     id                CHAR(36)  NOT NULL PRIMARY KEY,
     user_id           CHAR(36)  NOT NULL,
     spiritual_year_id CHAR(36)  NOT NULL,
@@ -188,7 +188,7 @@ ALTER TABLE events
     ADD COLUMN capacity INT NULL AFTER status,
     ADD COLUMN registration_deadline DATETIME NULL AFTER capacity;
 
-CREATE TABLE event_budgets (
+CREATE TABLE IF NOT EXISTS event_budgets (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     event_id      CHAR(36)  NOT NULL UNIQUE,
     proposed_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -200,7 +200,7 @@ CREATE TABLE event_budgets (
     CONSTRAINT fk_eb_approver FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE event_registrations (
+CREATE TABLE IF NOT EXISTS event_registrations (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     event_id      CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NULL,          -- nullable: walk-in registrants may not be app users
@@ -214,7 +214,7 @@ CREATE TABLE event_registrations (
     INDEX idx_er_event_status (event_id, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE event_certificates (
+CREATE TABLE IF NOT EXISTS event_certificates (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     event_registration_id CHAR(36) NOT NULL UNIQUE,
     certificate_url VARCHAR(500) NOT NULL,
@@ -226,7 +226,7 @@ CREATE TABLE event_certificates (
 -- CHAPTER 14 — PRAYER MANAGEMENT
 -- ============================================================================
 
-CREATE TABLE prayer_requests (
+CREATE TABLE IF NOT EXISTS prayer_requests (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     requested_by  CHAR(36)  NULL,           -- nullable: anonymous confidential requests
     title         VARCHAR(200) NOT NULL,
@@ -237,14 +237,14 @@ CREATE TABLE prayer_requests (
     CONSTRAINT fk_preq_user FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE prayer_chains (
+CREATE TABLE IF NOT EXISTS prayer_chains (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     name          VARCHAR(150) NOT NULL,
     coordinator_id CHAR(36) NOT NULL,
     CONSTRAINT fk_pc_coordinator FOREIGN KEY (coordinator_id) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE prayer_chain_members (
+CREATE TABLE IF NOT EXISTS prayer_chain_members (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     prayer_chain_id CHAR(36) NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -254,7 +254,7 @@ CREATE TABLE prayer_chain_members (
     UNIQUE KEY uq_chain_user (prayer_chain_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE prayer_partners (
+CREATE TABLE IF NOT EXISTS prayer_partners (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id_a     CHAR(36)  NOT NULL,
     user_id_b     CHAR(36)  NOT NULL,
@@ -264,7 +264,7 @@ CREATE TABLE prayer_partners (
     CONSTRAINT fk_pp_b FOREIGN KEY (user_id_b) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE prayer_calendar_slots (
+CREATE TABLE IF NOT EXISTS prayer_calendar_slots (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     topic         VARCHAR(200) NOT NULL,
     scheduled_date DATE NOT NULL,
@@ -272,7 +272,7 @@ CREATE TABLE prayer_calendar_slots (
     CONSTRAINT fk_pcs_event FOREIGN KEY (linked_kesha_event_id) REFERENCES events(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE testimonies (
+CREATE TABLE IF NOT EXISTS testimonies (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     shared_by     CHAR(36)  NULL,
     title         VARCHAR(200) NOT NULL,
@@ -291,7 +291,7 @@ CREATE TABLE testimonies (
 -- Chapter 9. This adds the journey-stage tracker and mentorship goal-setting.
 -- ============================================================================
 
-CREATE TABLE spiritual_journey_stages (
+CREATE TABLE IF NOT EXISTS spiritual_journey_stages (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     stage         ENUM('visitor','first_fellowship','registered_member','bible_study',
@@ -304,7 +304,7 @@ CREATE TABLE spiritual_journey_stages (
     UNIQUE KEY uq_user_stage (user_id, stage)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE mentorship_goals (
+CREATE TABLE IF NOT EXISTS mentorship_goals (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     mentorship_group_id CHAR(36) NOT NULL,
     mentee_id     CHAR(36)  NOT NULL,
@@ -315,7 +315,7 @@ CREATE TABLE mentorship_goals (
     CONSTRAINT fk_mgo_mentee FOREIGN KEY (mentee_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE mentorship_growth_reports (
+CREATE TABLE IF NOT EXISTS mentorship_growth_reports (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     mentorship_group_id CHAR(36) NOT NULL,
     mentee_id     CHAR(36)  NOT NULL,
@@ -332,7 +332,7 @@ CREATE TABLE mentorship_growth_reports (
 -- CHAPTER 16 — EVANGELISM & MISSIONS
 -- ============================================================================
 
-CREATE TABLE evangelism_teams (
+CREATE TABLE IF NOT EXISTS evangelism_teams (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     name          VARCHAR(150) NOT NULL,
     outreach_type ENUM('campus','hostel','high_school','hospital','prison','community') NOT NULL,
@@ -342,7 +342,7 @@ CREATE TABLE evangelism_teams (
     CONSTRAINT fk_evt_event FOREIGN KEY (linked_event_id) REFERENCES events(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE evangelism_team_members (
+CREATE TABLE IF NOT EXISTS evangelism_team_members (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     team_id       CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -351,7 +351,7 @@ CREATE TABLE evangelism_team_members (
     UNIQUE KEY uq_team_user (team_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE evangelism_reports (
+CREATE TABLE IF NOT EXISTS evangelism_reports (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     team_id       CHAR(36)  NOT NULL,
     outreach_date DATE NOT NULL,
@@ -364,7 +364,7 @@ CREATE TABLE evangelism_reports (
     CONSTRAINT fk_evr_submitter FOREIGN KEY (submitted_by) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE evangelism_followups (
+CREATE TABLE IF NOT EXISTS evangelism_followups (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     evangelism_report_id CHAR(36) NOT NULL,
     contact_name  VARCHAR(150) NOT NULL,
@@ -382,7 +382,7 @@ CREATE TABLE evangelism_followups (
 -- CHAPTER 17 — FINANCE MANAGEMENT
 -- ============================================================================
 
-CREATE TABLE annual_budgets (
+CREATE TABLE IF NOT EXISTS annual_budgets (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     spiritual_year_id CHAR(36) NOT NULL UNIQUE,
     total_amount  DECIMAL(14,2) NOT NULL DEFAULT 0,
@@ -393,7 +393,7 @@ CREATE TABLE annual_budgets (
     CONSTRAINT fk_ab_approver FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE income_records (
+CREATE TABLE IF NOT EXISTS income_records (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     income_type   ENUM('offering','donation','welfare_contribution','fundraising',
                          'merchandise','event_registration') NOT NULL,
@@ -409,7 +409,7 @@ CREATE TABLE income_records (
     CONSTRAINT fk_inc_recorder FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE expense_requests (
+CREATE TABLE IF NOT EXISTS expense_requests (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     expense_type  ENUM('ministry','welfare','equipment','speaker_support','missions','administration')
                         NOT NULL,
@@ -445,7 +445,7 @@ CREATE TABLE expense_requests (
     INDEX idx_exp_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE finance_audit_reports (
+CREATE TABLE IF NOT EXISTS finance_audit_reports (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     spiritual_year_id CHAR(36) NOT NULL,
     title         VARCHAR(200) NOT NULL,
@@ -459,7 +459,7 @@ CREATE TABLE finance_audit_reports (
 -- CHAPTER 18 — WELFARE MANAGEMENT
 -- ============================================================================
 
-CREATE TABLE welfare_cases (
+CREATE TABLE IF NOT EXISTS welfare_cases (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     case_type     ENUM('emergency','medical','bereavement','student_support','counselling_referral',
@@ -476,7 +476,7 @@ CREATE TABLE welfare_cases (
     CONSTRAINT fk_wc_expense FOREIGN KEY (linked_expense_request_id) REFERENCES expense_requests(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE welfare_emergency_contacts (
+CREATE TABLE IF NOT EXISTS welfare_emergency_contacts (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     user_id       CHAR(36)  NOT NULL,
     contact_name  VARCHAR(150) NOT NULL,
@@ -489,7 +489,7 @@ CREATE TABLE welfare_emergency_contacts (
 -- CHAPTER 19 — ASSET MANAGEMENT
 -- ============================================================================
 
-CREATE TABLE assets (
+CREATE TABLE IF NOT EXISTS assets (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     name          VARCHAR(150) NOT NULL,
     category      ENUM('musical_instrument','camera','projector','speaker','mixer','chair',
@@ -507,7 +507,7 @@ CREATE TABLE assets (
     CONSTRAINT fk_asset_committee FOREIGN KEY (custodian_committee_id) REFERENCES committees(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE asset_assignments (
+CREATE TABLE IF NOT EXISTS asset_assignments (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     asset_id      CHAR(36)  NOT NULL,
     assigned_to   CHAR(36)  NOT NULL,
@@ -519,7 +519,7 @@ CREATE TABLE asset_assignments (
     CONSTRAINT fk_aa_user FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE asset_maintenance_records (
+CREATE TABLE IF NOT EXISTS asset_maintenance_records (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     asset_id      CHAR(36)  NOT NULL,
     maintenance_type ENUM('routine','repair') NOT NULL,
@@ -532,7 +532,7 @@ CREATE TABLE asset_maintenance_records (
     CONSTRAINT fk_amr_logger FOREIGN KEY (logged_by) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE asset_handovers (
+CREATE TABLE IF NOT EXISTS asset_handovers (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     asset_id      CHAR(36)  NOT NULL,
     outgoing_user_id CHAR(36) NOT NULL,
@@ -546,7 +546,7 @@ CREATE TABLE asset_handovers (
     CONSTRAINT fk_ah_signoff FOREIGN KEY (signed_off_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE asset_audits (
+CREATE TABLE IF NOT EXISTS asset_audits (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     conducted_by  CHAR(36)  NOT NULL,
     audit_date    DATE NOT NULL,
@@ -554,7 +554,7 @@ CREATE TABLE asset_audits (
     CONSTRAINT fk_aau_user FOREIGN KEY (conducted_by) REFERENCES users(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE asset_audit_items (
+CREATE TABLE IF NOT EXISTS asset_audit_items (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     asset_audit_id CHAR(36) NOT NULL,
     asset_id      CHAR(36)  NOT NULL,
@@ -568,7 +568,7 @@ CREATE TABLE asset_audit_items (
 -- CHAPTER 20 — LIBRARY & RESOURCE CENTRE
 -- ============================================================================
 
-CREATE TABLE library_resources (
+CREATE TABLE IF NOT EXISTS library_resources (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     title         VARCHAR(200) NOT NULL,
     resource_type ENUM('book','devotional','sermon','audio','video','pdf','constitution',
@@ -585,7 +585,7 @@ CREATE TABLE library_resources (
     FULLTEXT INDEX ft_library_search (title, author_or_speaker, category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE library_borrowings (
+CREATE TABLE IF NOT EXISTS library_borrowings (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     resource_id   CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -598,7 +598,7 @@ CREATE TABLE library_borrowings (
     INDEX idx_lb_due (due_date, returned_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE library_reservations (
+CREATE TABLE IF NOT EXISTS library_reservations (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     resource_id   CHAR(36)  NOT NULL,
     user_id       CHAR(36)  NOT NULL,
@@ -614,14 +614,14 @@ CREATE TABLE library_reservations (
 --  and outbound broadcast records; individual notifications fan out from here.)
 -- ============================================================================
 
-CREATE TABLE broadcast_groups (
+CREATE TABLE IF NOT EXISTS broadcast_groups (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     code          ENUM('entire_cu','ministry_members','committee_members','executive_committee',
                          'prayer_team','first_years','alumni') NOT NULL UNIQUE,
     name          VARCHAR(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE broadcast_messages (
+CREATE TABLE IF NOT EXISTS broadcast_messages (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     broadcast_group_id CHAR(36) NOT NULL,
     channel       ENUM('email','sms','push','whatsapp','in_app') NOT NULL,
@@ -638,7 +638,7 @@ CREATE TABLE broadcast_messages (
 -- Automated notification rules (birthday greetings, renewal reminders, etc.)
 -- are configuration, not per-user data — modeled as a rules table the
 -- notification scheduler reads, rather than one table per trigger type.
-CREATE TABLE automated_notification_rules (
+CREATE TABLE IF NOT EXISTS automated_notification_rules (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     trigger_code  ENUM('meeting_reminder','fellowship_reminder','event_reminder','birthday_greeting',
                          'membership_renewal','leadership_handover_task','prayer_meeting_alert',
@@ -654,7 +654,7 @@ CREATE TABLE automated_notification_rules (
 -- tracks generated report artifacts (for re-download and audit trail).
 -- ============================================================================
 
-CREATE TABLE generated_reports (
+CREATE TABLE IF NOT EXISTS generated_reports (
     id            CHAR(36)  NOT NULL PRIMARY KEY,
     report_type   ENUM('membership','attendance','ministries','committees','finance','assets',
                          'prayer_activities','bible_studies','evangelism','events',
