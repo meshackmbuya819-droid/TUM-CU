@@ -1,0 +1,132 @@
+{
+  "heroCarousel": [
+    {
+      "id": "slide-1",
+      "src": "/community/community-1.jpg",
+      "caption": "Prayer & Reflection",
+      "eyebrow": "A people who seek God",
+      "active": true,
+      "order": 1
+    },
+    {
+      "id": "slide-2",
+      "src": "/community/community-2.jpg",
+      "caption": "Worship in Unity",
+      "eyebrow": "One family. One faith.",
+      "active": true,
+      "order": 2
+    },
+    {
+      "id": "slide-3",
+      "src": "/community/community-3.jpg",
+      "caption": "Fellowship & Community",
+      "eyebrow": "Growing together",
+      "active": true,
+      "order": 3
+    },
+    {
+      "id": "slide-4",
+      "src": "/community/community-4.jpg",
+      "caption": "Worship through Music",
+      "eyebrow": "Gifts offered to God",
+      "active": true,
+      "order": 4
+    },
+    {
+      "id": "slide-5",
+      "src": "/community/community-5.jpg",
+      "caption": "A Community that Serves",
+      "eyebrow": "Faith becoming action",
+      "active": true,
+      "order": 5
+    }
+  ],
+  "rotateIntervalMs": 4000,
+  "backgroundImage": {
+    "src": "/tum-gate-monument.jpg",
+    "opacity": 0.8,
+    "blurPx": 1,
+    "title": "TUM Main Entrance Gate Monument"
+  },
+  "backdropSlides": [
+    {
+      "id": "backdrop-1",
+      "src": "/tum-gate-monument.jpg",
+      "title": "TUM Main Entrance Monument & Heritage",
+      "active": true,
+      "order": 1
+    },
+    {
+      "id": "backdrop-2",
+      "src": "/community/community-1.jpg",
+      "title": "Student Intercession & Prayer Gathering",
+      "active": true,
+      "order": 2
+    },
+    {
+      "id": "backdrop-3",
+      "src": "/community/community-2.jpg",
+      "title": "Joyful Praise & Worship in Unity",
+      "active": true,
+      "order": 3
+    },
+    {
+      "id": "backdrop-4",
+      "src": "/community/community-3.jpg",
+      "title": "Christian Fellowship & Discipleship",
+      "active": true,
+      "order": 4
+    },
+    {
+      "id": "backdrop-5",
+      "src": "/community/community-5.jpg",
+      "title": "Campus Evangelism & Servant Leadership",
+      "active": true,
+      "order": 5
+    }
+  ],
+  "galleryPhotos": [
+    {
+      "id": "gal-1",
+      "src": "/community/community-3.jpg",
+      "alt": "TUMCU students sharing fellowship",
+      "caption": "Fellowship & belonging",
+      "span": "featured",
+      "order": 1
+    },
+    {
+      "id": "gal-2",
+      "src": "/community/community-2.jpg",
+      "alt": "TUMCU worship team",
+      "caption": null,
+      "span": "standard",
+      "order": 2
+    },
+    {
+      "id": "gal-3",
+      "src": "/community/community-5.jpg",
+      "alt": "TUMCU students in fellowship",
+      "caption": null,
+      "span": "standard",
+      "order": 3
+    },
+    {
+      "id": "gal-4",
+      "src": "/community/community-1.jpg",
+      "alt": "TUMCU prayer moment",
+      "caption": null,
+      "span": "standard",
+      "order": 4
+    },
+    {
+      "id": "gal-5",
+      "src": "/community/community-4.jpg",
+      "alt": "TUMCU music ministry",
+      "caption": null,
+      "span": "standard",
+      "order": 5
+    }
+  ],
+  "lastUpdatedBy": "meshack",
+  "lastUpdatedAt": "2026-10-04T20:34:57.573Z"
+}
