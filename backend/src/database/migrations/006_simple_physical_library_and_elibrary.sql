@@ -60,9 +60,19 @@ SET
   lb.borrower_phone = COALESCE(lb.borrower_phone, u.phone_number, ''),
   lb.due_at = COALESCE(lb.due_at, lb.due_date);
 
--- 4. Ensure is_digital is set to 1 for all digital library resources
+-- 4. Ensure library_resources has the is_digital flag before using it.
+-- MySQL 8 does not support ADD COLUMN IF NOT EXISTS, so use an
+-- information_schema check plus dynamic SQL. This also makes the migration
+-- safe on databases created from older TECUMP schemas.
+SET @tecump_col_exists := (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'library_resources' AND column_name = 'is_digital');
+SET @tecump_sql := IF(@tecump_col_exists = 0, CONVERT(0x414c544552205441424c4520606c6962726172795f7265736f7572636573602041444420434f4c554d4e206069735f6469676974616c602054494e59494e54283129204e4f54204e554c4c2044454641554c5420302041465445522066696c655f75726c USING utf8mb4), CONVERT(0x53454c4543542031 USING utf8mb4));
+PREPARE tecump_stmt FROM @tecump_sql;
+EXECUTE tecump_stmt;
+DEALLOCATE PREPARE tecump_stmt;
+
+-- Mark resources with downloadable files as digital.
 UPDATE library_resources
 SET is_digital = 1
-WHERE file_url IS NOT NULL OR is_digital = 1;
+WHERE file_url IS NOT NULL AND file_url <> '';
 
 SET FOREIGN_KEY_CHECKS = 1;
