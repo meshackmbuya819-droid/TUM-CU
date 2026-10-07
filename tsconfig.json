@@ -2,7 +2,11 @@
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -17,15 +21,21 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     },
-    "types": ["node", "vite-plugin-pwa/client"]
+    "types": [
+      "node",
+      "vite-plugin-pwa/client"
+    ]
   },
   "include": [
     "src/**/*",
     "backend/src/**/*",
     "server.ts",
-    "vite.config.ts"
+    "vite.config.ts",
+    "dev-server.ts"
   ],
   "exclude": [
     "node_modules",
