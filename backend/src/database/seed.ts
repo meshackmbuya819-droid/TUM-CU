@@ -557,6 +557,61 @@ async function seed() {
     await grant(roleCode, MEMBER_BASE_PERMISSIONS);
   }
 
+  // --- Weekly Spiritual Rhythm + starter events ------------------------------
+  // These records are created only when an active user exists because the
+  // database intentionally requires weekly programmes/events to have a creator.
+  const activeUsers = await pool.query(`SELECT id FROM users WHERE account_status = 'active' ORDER BY created_at ASC LIMIT 1`);
+  const bootstrapUserId = (activeUsers[0] as { id: string }[])[0]?.id;
+  if (bootstrapUserId) {
+    const weekly = [
+      ['monday','evangelism','E-Teams Fellowship / Door-to-Door Evangelism','17:00:00','Main Campus / E-Team Centres'],
+      ['tuesday','midweek_fellowship','Tuesday Fellowship','17:00:00','Main Sanctuary'],
+      ['thursday','bible_study','Thursday Bible Study / BEST','17:00:00','Main Sanctuary'],
+      ['friday','ministry_practice','Friday Ministry Practices','16:30:00','Main Sanctuary'],
+      ['friday','overnight_kesha','Monthly Kesha','21:00:00','Main Sanctuary'],
+      ['sunday','sunday_service','Sunday Main Sanctuary Service','08:00:00','Main Sanctuary'],
+    ];
+    for (const [day,type,title,time,venue] of weekly) {
+      const existing = await pool.query(
+        `SELECT id FROM weekly_programmes WHERE programme_type = :type AND theme = :title LIMIT 1`,
+        { type, title }
+      );
+      if (!(existing[0] as any[]).length) {
+        const dayNum: Record<string,number> = { sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6 };
+        const now = new Date();
+        const delta = (dayNum[day] - now.getDay() + 7) % 7;
+        const d = new Date(now);
+        d.setDate(d.getDate() + delta);
+        const [hh,mm,ss] = time.split(':').map(Number);
+        d.setHours(hh,mm,ss,0);
+        await pool.query(
+          `INSERT INTO weekly_programmes (id, programme_type, theme, scheduled_at, venue, created_by)
+           VALUES (:id, :programme_type, :theme, :scheduled_at, :venue, :created_by)`,
+          { id: randomUUID(), programme_type: type, theme: title, scheduled_at: d.toISOString().slice(0,19).replace('T',' '), venue, created_by: bootstrapUserId }
+        );
+      }
+    }
+
+    const events = [
+      ['Sunday Main Sanctuary Service','weekly_fellowship','Main Sunday worship, Word and fellowship','2026-10-11 08:00:00','2026-10-11 13:00:00','Main Sanctuary'],
+      ['Tuesday Fellowship','weekly_fellowship','Midweek fellowship and discipleship','2026-10-13 17:00:00','2026-10-13 19:00:00','Main Sanctuary'],
+      ['Thursday Bible Study / BEST','training','Bible study, teaching and discussion','2026-10-15 17:00:00','2026-10-15 18:30:00','Main Sanctuary'],
+      ['Friday Ministry Practices','ministry_practice','Ministry team practices and preparation','2026-10-16 16:30:00','2026-10-16 19:00:00','Main Sanctuary'],
+    ];
+    for (const [title,eventType,description,startAt,endAt,location] of events) {
+      const existing = await pool.query(`SELECT id FROM events WHERE title = :title AND start_at = :start_at LIMIT 1`, { title, start_at: startAt });
+      if (!(existing[0] as any[]).length) {
+        await pool.query(
+          `INSERT INTO events (id,title,event_type,description,start_at,end_at,location,organized_by,status)
+           VALUES (:id,:title,:event_type,:description,:start_at,:end_at,:location,:organized_by,'approved')`,
+          { id: randomUUID(), title, event_type: eventType, description, start_at: startAt, end_at: endAt, location, organized_by: bootstrapUserId }
+        );
+      }
+    }
+  } else {
+    logger.warn('No active user yet; weekly programmes and starter events will be seeded after the first Super Administrator is created.');
+  }
+
   // --- Academic / Spiritual Year Template ------------------------------------
   const currentYear = new Date().getFullYear();
   await upsert('spiritual_years', 'label', [
@@ -582,136 +637,6 @@ async function seed() {
         'in its constitution. [Replace with the exact constitutional declaration text.]',
     }
   );
-
-  // --- Public weekly spiritual rhythm ---------------------------------------
-  // These rows are safe to re-run and do not require an admin user because
-  // weekly_programmes.created_by is nullable after migration 005.
-  const weeklyRhythm = [
-    {
-      day: 'Monday',
-      title: 'E-Teams Fellowship / Door-to-Door Evangelism',
-      programme_type: 'evangelism',
-      time: '5:00 PM – 7:00 PM',
-      venue: 'Designated E-Team Centres / Campus & Hostels',
-      leader: 'NORET / SORET & Evangelism Teams',
-      description: 'Alternating Monday rhythm: E-Teams Fellowship and Door-to-Door Evangelism.',
-      display_order: 1,
-    },
-    {
-      day: 'Tuesday',
-      title: 'Tuesday Fellowship',
-      programme_type: 'midweek_fellowship',
-      time: '5:00 PM – 7:00 PM',
-      venue: 'TUMCU Fellowship Venue',
-      leader: 'TUMCU Fellowship',
-      description: 'Weekly fellowship, worship, teaching, prayer and community.',
-      display_order: 2,
-    },
-    {
-      day: 'Thursday',
-      title: 'Bible Study / BEST',
-      programme_type: 'bible_study',
-      time: '5:00 PM – 6:30 PM',
-      venue: 'TUMCU Fellowship Venue',
-      leader: 'Bible Study / BEST Team',
-      description: 'Weekly Bible Study and BEST discipleship session.',
-      display_order: 3,
-    },
-    {
-      day: 'Friday',
-      title: 'Ministry Practices',
-      programme_type: 'ministry_practice',
-      time: '4:30 PM – 7:00 PM',
-      venue: 'TUMCU Fellowship Venue',
-      leader: 'Ministry Leaders',
-      description: 'Weekly ministry practice, preparation and coordination.',
-      display_order: 4,
-    },
-    {
-      day: 'Friday',
-      title: 'Monthly Kesha',
-      programme_type: 'overnight_kesha',
-      time: '9:00 PM – 5:00 AM',
-      venue: 'TUMCU Fellowship Venue',
-      leader: 'TUMCU Prayer & Worship Teams',
-      description: 'Monthly overnight prayer and worship gathering.',
-      display_order: 5,
-    },
-    {
-      day: 'Sunday',
-      title: 'Main Sanctuary Service',
-      programme_type: 'sunday_service',
-      time: '8:00 AM – 1:00 PM',
-      venue: 'Main Sanctuary',
-      leader: 'TUMCU Main Service Team',
-      description: 'Main Sunday worship service, Word, fellowship and ministry.',
-      display_order: 6,
-    },
-  ];
-
-  for (const programme of weeklyRhythm) {
-    await pool.query(
-      `INSERT INTO weekly_programmes
-        (id, day, title, programme_type, time, venue, leader, description, is_active, display_order, created_by)
-       SELECT :id, :day, :title, :programmeType, :time, :venue, :leader, :description, TRUE, :displayOrder, NULL
-       FROM DUAL
-       WHERE NOT EXISTS (
-         SELECT 1 FROM weekly_programmes WHERE day = :day AND title = :title
-       )`,
-      {
-        id: randomUUID(),
-        day: programme.day,
-        title: programme.title,
-        programmeType: programme.programme_type,
-        time: programme.time,
-        venue: programme.venue,
-        leader: programme.leader,
-        description: programme.description,
-        displayOrder: programme.display_order,
-      }
-    );
-  }
-  logger.info(`Seeded baseline weekly spiritual rhythm (${weeklyRhythm.length} entries)`);
-
-  // --- Initial public events -------------------------------------------------
-  // Events require an organizer because the schema intentionally keeps that
-  // relationship mandatory. Once the first active user/admin exists, seed a
-  // small set of upcoming public events. Re-running the seed is idempotent.
-  const [organizerRows] = await pool.query(
-    `SELECT id FROM users WHERE account_status = 'active' ORDER BY created_at ASC LIMIT 1`
-  );
-  const organizer = (organizerRows as { id: string }[])[0];
-  if (organizer) {
-    const eventDates = [
-      { title: 'TUMCU Tuesday Fellowship', type: 'weekly_fellowship', start: '2026-10-13 17:00:00', end: '2026-10-13 19:00:00', location: 'TUMCU Fellowship Venue' },
-      { title: 'TUMCU Bible Study / BEST', type: 'bible_study', start: '2026-10-15 17:00:00', end: '2026-10-15 18:30:00', location: 'TUMCU Fellowship Venue' },
-      { title: 'TUMCU Monthly Kesha', type: 'kesha', start: '2026-10-09 21:00:00', end: '2026-10-10 05:00:00', location: 'TUMCU Fellowship Venue' },
-    ];
-    for (const event of eventDates) {
-      await pool.query(
-        `INSERT INTO events
-          (id, title, event_type, description, start_at, end_at, location, organized_by, status)
-         SELECT :id, :title, :eventType, :description, :startAt, :endAt, :location, :organizedBy, 'approved'
-         FROM DUAL
-         WHERE NOT EXISTS (
-           SELECT 1 FROM events WHERE title = :title AND start_at = :startAt
-         )`,
-        {
-          id: randomUUID(),
-          title: event.title,
-          eventType: event.type,
-          description: `Official TUMCU ${event.title}.`,
-          startAt: event.start,
-          endAt: event.end,
-          location: event.location,
-          organizedBy: organizer.id,
-        }
-      );
-    }
-    logger.info(`Seeded baseline upcoming events (${eventDates.length} entries)`);
-  } else {
-    logger.info('No active user yet; baseline events will be seeded automatically on the next db:seed run after the first admin/member is created.');
-  }
 
   logger.info('✅ Seeding complete.');
   process.exit(0);

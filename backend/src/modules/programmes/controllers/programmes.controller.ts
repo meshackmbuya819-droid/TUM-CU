@@ -84,36 +84,78 @@ export function calculateMondaySchedule(targetDate: Date = new Date()) {
   };
 }
 
+function programmeTypeTitle(type?: string): string {
+  const labels: Record<string, string> = {
+    sunday_service: 'Sunday Main Sanctuary Service',
+    midweek_fellowship: 'Tuesday Fellowship',
+    bible_study: 'Thursday Bible Study / BEST',
+    prayer_meeting: 'Prayer Meeting',
+    overnight_kesha: 'Monthly Kesha',
+    evangelism: 'Door to Door Evangelism',
+    ministry_practice: 'Friday Ministry Practices',
+    worship_practice: 'Worship Practice',
+    instrument_practice: 'Instrument Practice',
+    discipleship_class: 'Discipleship Class',
+  };
+  return labels[type || ''] || 'TUMCU Weekly Programme';
+}
+
+function parseProgrammeDate(day: string, time: string): string {
+  const dayMap: Record<string, number> = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+  const now = new Date();
+  const target = dayMap[day.toLowerCase()] ?? 0;
+  const result = new Date(now);
+  const delta = (target - result.getDay() + 7) % 7;
+  result.setDate(result.getDate() + delta);
+  const match = time.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);
+  let hour = match ? Number(match[1]) : 17;
+  const minute = match ? Number(match[2] || 0) : 0;
+  const meridiem = (match?.[3] || '').toUpperCase();
+  if (meridiem === 'PM' && hour < 12) hour += 12;
+  if (meridiem === 'AM' && hour === 12) hour = 0;
+  result.setHours(hour, minute, 0, 0);
+  return result.toISOString().slice(0, 19).replace('T', ' ');
+}
+
 class ProgrammesController {
   list = asyncHandler(async (_req: Request, res: Response) => {
-    const rows = await query<WeeklyProgramme[]>('SELECT * FROM weekly_programmes');
+    const rows = await query<any[]>('SELECT * FROM weekly_programmes ORDER BY scheduled_at ASC');
     const monSchedule = calculateMondaySchedule();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-    const enriched = rows.map((p) => {
-      if (p.day?.toLowerCase() === 'monday') {
-        return {
-          ...p,
-          active_this_week_title: monSchedule.currentTitle,
-          alternating_info: {
-            current_week_activity: monSchedule.currentTitle,
-            next_week_activity: monSchedule.nextTitle,
-            this_monday_date: monSchedule.thisMondayDate,
-            rule: 'Alternating every Monday between E-Teams Fellowship and Door to Door Evangelism',
-            upcoming_mondays: monSchedule.upcomingMondays,
-          },
+    const mapped = rows.map((p) => {
+      const scheduled = p.scheduled_at ? new Date(p.scheduled_at) : new Date();
+      const day = dayNames[scheduled.getDay()];
+      const time = scheduled.toLocaleTimeString('en-KE', { hour: 'numeric', minute: '2-digit', hour12: true });
+      const title = p.title || p.theme || programmeTypeTitle(p.programme_type);
+      const item: WeeklyProgramme = {
+        id: p.id,
+        day,
+        title,
+        programme_type: p.programme_type,
+        time,
+        venue: p.venue || 'Main Sanctuary',
+        leader: p.leader || '',
+        description: p.description || '',
+        alternating_enabled: p.alternating_enabled ? 1 : 0,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+      };
+      if (day.toLowerCase() === 'monday') {
+        item.active_this_week_title = monSchedule.currentTitle;
+        item.alternating_info = {
+          current_week_activity: monSchedule.currentTitle,
+          next_week_activity: monSchedule.nextTitle,
+          this_monday_date: monSchedule.thisMondayDate,
+          rule: 'Alternating every Monday between E-Teams Fellowship and Door to Door Evangelism',
+          upcoming_mondays: monSchedule.upcomingMondays,
         };
       }
-      return p;
+      return item;
     });
 
-    const sorted = [...enriched].sort((a, b) => {
-      const orderA = DAY_ORDER[a.day?.toLowerCase()?.trim()] ?? 99;
-      const orderB = DAY_ORDER[b.day?.toLowerCase()?.trim()] ?? 99;
-      return orderA - orderB;
-    });
-
-    return sendSuccess(res, sorted, 'Weekly programmes retrieved', 200, {
-      total: sorted.length,
+    return sendSuccess(res, mapped, 'Weekly programmes retrieved', 200, {
+      total: mapped.length,
       monday_schedule: monSchedule,
     });
   });
@@ -124,71 +166,94 @@ class ProgrammesController {
   });
 
   getById = asyncHandler(async (req: Request, res: Response) => {
-    const rows = await query<WeeklyProgramme[]>('SELECT * FROM weekly_programmes WHERE id = :id LIMIT 1', {
-      id: req.params.id,
-    });
+    const rows = await query<any[]>('SELECT * FROM weekly_programmes WHERE id = :id LIMIT 1', { id: req.params.id });
     if (!rows.length) throw new NotFoundError('Programme');
     const p = rows[0];
-    if (p.day?.toLowerCase() === 'monday') {
+    const scheduled = p.scheduled_at ? new Date(p.scheduled_at) : new Date();
+    const day = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][scheduled.getDay()];
+    const item: WeeklyProgramme = {
+      id: p.id,
+      day,
+      title: p.title || p.theme || programmeTypeTitle(p.programme_type),
+      programme_type: p.programme_type,
+      time: scheduled.toLocaleTimeString('en-KE', { hour: 'numeric', minute: '2-digit', hour12: true }),
+      venue: p.venue || 'Main Sanctuary',
+      leader: p.leader || '',
+      description: p.description || '',
+      alternating_enabled: p.alternating_enabled ? 1 : 0,
+      created_at: p.created_at,
+      updated_at: p.updated_at,
+    };
+    if (day.toLowerCase() === 'monday') {
       const monSchedule = calculateMondaySchedule();
-      return sendSuccess(res, {
-        ...p,
-        active_this_week_title: monSchedule.currentTitle,
-        alternating_info: monSchedule,
-      }, 'Programme retrieved');
+      item.active_this_week_title = monSchedule.currentTitle;
+      item.alternating_info = monSchedule;
     }
-    return sendSuccess(res, p, 'Programme retrieved');
+    return sendSuccess(res, item, 'Programme retrieved');
   });
 
   create = asyncHandler(async (req: Request, res: Response) => {
     const id = req.body.id || uuidv4();
-    const newProg: WeeklyProgramme = {
+    const day = String(req.body.day || 'Sunday');
+    const title = req.body.title || 'Fellowship Program';
+    const time = req.body.time || '5:00 PM';
+    const venue = req.body.venue || 'Main Sanctuary';
+    const scheduledAt = parseProgrammeDate(day, time);
+    const newProg = {
       id,
-      day: req.body.day || 'Sunday',
-      title: req.body.title || 'Fellowship Program',
-      programme_type: req.body.programme_type || req.body.type || 'fellowship',
-      time: req.body.time || '5:00 PM – 7:00 PM',
-      venue: req.body.venue || 'Main Sanctuary',
+      programme_type: req.body.programme_type || req.body.type || 'midweek_fellowship',
+      theme: title,
+      scripture_reference: req.body.scripture_reference || null,
+      scheduled_at: scheduledAt,
+      venue,
+      created_by: req.user?.sub || null,
+      title,
       leader: req.body.leader || '',
       description: req.body.description || '',
       alternating_enabled: req.body.alternating_enabled ? 1 : 0,
-      interval_type: req.body.interval_type || 'weekly',
-      created_at: new Date().toISOString(),
     };
 
     await query(
-      `INSERT INTO weekly_programmes (id, day, title, programme_type, time, venue, leader, description, alternating_enabled, created_at)
-       VALUES (:id, :day, :title, :programme_type, :time, :venue, :leader, :description, :alternating_enabled, :created_at)`,
-      newProg as unknown as Record<string, unknown>
+      `INSERT INTO weekly_programmes
+       (id, programme_type, theme, scripture_reference, scheduled_at, venue, created_by)
+       VALUES (:id, :programme_type, :theme, :scripture_reference, :scheduled_at, :venue, :created_by)`,
+      newProg as Record<string, unknown>
     );
 
-    return sendSuccess(res, newProg, 'Weekly programme created successfully', 201);
+    return sendSuccess(res, { ...newProg, day, time }, 'Weekly programme created successfully', 201);
   });
 
   update = asyncHandler(async (req: Request, res: Response) => {
     const id = req.params.id;
-    const existing = await query<WeeklyProgramme[]>('SELECT * FROM weekly_programmes WHERE id = :id LIMIT 1', { id });
+    const existing = await query<any[]>('SELECT * FROM weekly_programmes WHERE id = :id LIMIT 1', { id });
     if (!existing.length) throw new NotFoundError('Programme');
-
-    const updated: WeeklyProgramme = {
-      ...existing[0],
-      day: req.body.day !== undefined ? req.body.day : existing[0].day,
-      title: req.body.title !== undefined ? req.body.title : existing[0].title,
-      programme_type: req.body.programme_type !== undefined ? req.body.programme_type : existing[0].programme_type,
-      time: req.body.time !== undefined ? req.body.time : existing[0].time,
-      venue: req.body.venue !== undefined ? req.body.venue : existing[0].venue,
-      leader: req.body.leader !== undefined ? req.body.leader : existing[0].leader,
-      description: req.body.description !== undefined ? req.body.description : existing[0].description,
-      alternating_enabled: req.body.alternating_enabled !== undefined ? (req.body.alternating_enabled ? 1 : 0) : existing[0].alternating_enabled,
-      updated_at: new Date().toISOString(),
-    };
+    const current = existing[0];
+    const currentDate = current.scheduled_at ? new Date(current.scheduled_at) : new Date();
+    const day = req.body.day || ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentDate.getDay()];
+    const currentTime = currentDate.toLocaleTimeString('en-KE', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const time = req.body.time || currentTime;
+    const title = req.body.title ?? current.theme ?? programmeTypeTitle(current.programme_type);
+    const scheduledAt = parseProgrammeDate(day, time);
 
     await query(
-      `UPDATE weekly_programmes SET day = :day, title = :title, programme_type = :programme_type, time = :time, venue = :venue, leader = :leader, description = :description, alternating_enabled = :alternating_enabled, updated_at = :updated_at WHERE id = :id`,
-      updated as unknown as Record<string, unknown>
+      `UPDATE weekly_programmes
+          SET programme_type = :programme_type,
+              theme = :theme,
+              scripture_reference = :scripture_reference,
+              scheduled_at = :scheduled_at,
+              venue = :venue
+        WHERE id = :id`,
+      {
+        id,
+        programme_type: req.body.programme_type ?? current.programme_type,
+        theme: title,
+        scripture_reference: req.body.scripture_reference ?? current.scripture_reference,
+        scheduled_at: scheduledAt,
+        venue: req.body.venue ?? current.venue,
+      }
     );
 
-    return sendSuccess(res, updated, 'Weekly programme updated successfully');
+    return sendSuccess(res, { id, day, title, time, venue: req.body.venue ?? current.venue }, 'Weekly programme updated successfully');
   });
 
   remove = asyncHandler(async (req: Request, res: Response) => {
