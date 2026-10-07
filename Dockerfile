@@ -14,4 +14,4 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/public ./public
 COPY --from=build /app/backend/src/database/migrations ./dist/migrations
 EXPOSE 3000
-CMD ["sh", "-c", "node dist/migrate.cjs && node dist/server.cjs"]
+CMD ["sh", "-c", "node dist/migrate.cjs && node dist/seed.cjs && node dist/server.cjs"]

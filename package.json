@@ -5,7 +5,7 @@
   "description": "TUMCU Enterprise Christian Union Management Platform (TECUMP)",
   "scripts": {
     "dev": "tsx dev-server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild backend/src/database/migrate.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/migrate.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild backend/src/database/migrate.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/migrate.cjs && esbuild backend/src/database/seed.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/seed.cjs",
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
     "db:migrate": "npm --prefix backend run migrate",
