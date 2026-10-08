@@ -671,9 +671,14 @@ export async function seed() {
 
 if (process.argv[1]?.endsWith('seed.cjs')) {
   seed()
+    .then(() => {
+      // `pool` is a compatibility wrapper around the real MySQL pool and
+      // intentionally does not expose `.end()`. Exit only after seeding has
+      // completed so the production Docker command can start the server.
+      process.exit(0);
+    })
     .catch((err) => {
       console.error('❌ Seeding failed:', err);
-      process.exitCode = 1;
-    })
-    .finally(() => pool.end().catch(() => undefined));
+      process.exit(1);
+    });
 }
