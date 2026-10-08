@@ -8,10 +8,14 @@ RUN npm run build
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+RUN mkdir -p /app/data/uploads
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/public ./public
 COPY --from=build /app/backend/src/database/migrations ./dist/migrations
 EXPOSE 3000
+# Migrations + reference/content bootstrap are idempotent. The admin account is
+# intentionally NOT created automatically; create it explicitly with
+# `npm run db:create-admin -- ...` after deployment.
 CMD ["sh", "-c", "node dist/migrate.cjs && node dist/seed.cjs && node dist/server.cjs"]

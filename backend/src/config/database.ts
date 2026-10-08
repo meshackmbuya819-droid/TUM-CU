@@ -3034,6 +3034,12 @@ export const pool = {
     return executeInMemoryQuery(sql, params);
   },
 
+  async end() {
+    if (mysqlPool) {
+      await mysqlPool.end();
+    }
+  },
+
   async getConnection() {
     if (mysqlPool && !useMemoryStore) {
       try {

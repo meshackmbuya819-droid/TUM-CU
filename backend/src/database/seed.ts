@@ -13,13 +13,14 @@
  * a scope_id pointing at the specific ministry, so a leader only manages
  * their own ministry, never every ministry) -> Ordinary Member.
  *
- * Per Chapter 80: no operational data (members, financial records) is
- * seeded here — only the fixed reference data every deployment needs.
+ * No member, financial, attendance, or other private operational records are seeded here.
+ * Public CMS bootstrap data (ministries and weekly rhythm) is inserted separately and safely.
  * Idempotent: safe to re-run.
  */
 import { randomUUID } from 'crypto';
-import { pool } from '../config/database';
+import { checkDatabaseConnection, pool } from '../config/database';
 import { logger } from '../utils/logger';
+import { seedOperationalContent } from './operational-content';
 
 async function upsert(table: string, uniqueCol: string, rows: Record<string, unknown>[]) {
   for (const row of rows) {
@@ -39,7 +40,16 @@ async function upsert(table: string, uniqueCol: string, rows: Record<string, unk
   logger.info(`Seeded ${rows.length} rows into ${table}`);
 }
 
-export async function seed() {
+async function seed() {
+  // Production seeding must never silently use the JSON/in-memory store.
+  // Explicitly verify MySQL first because database.ts defaults to memory mode
+  // until the application/server performs its normal connection check.
+  const dbHealthy = await checkDatabaseConnection();
+  if (!dbHealthy) {
+    throw new Error('Production MySQL connection could not be verified; refusing to seed the local memory store.');
+  }
+  logger.info('Database verified for seed; writing seed data to MySQL.');
+
   // --- Membership Types (Chapter 4 / constitution) --------------------------
   await upsert('membership_types', 'code', [
     { code: 'full', name: 'Full Member', description: 'Full constitutional member' },
@@ -68,18 +78,18 @@ export async function seed() {
   // Includes Brothers'/Sisters' Ministry, which the 2nd Vice Chairperson may
   // be appointed to oversee alongside Associates/Finalists.
   await upsert('ministries', 'code', [
-    { code: 'intercessory', name: 'Intercessory Ministry', description: 'Prayer, fasting, intercession and spiritual covering for the Christian Union and campus.', meeting_day: 'Wednesdays & Fridays', meeting_time: '5:00 PM', meeting_venue: 'Main Sanctuary', display_order: 1, is_active: true, show_on_landing: true },
-    { code: 'worship', name: 'Praise & Worship Ministry', description: 'Leads the congregation into Christ-centred worship through praise, music and song.', meeting_day: 'Tuesdays & Thursdays', meeting_time: '5:00 PM', meeting_venue: 'Assembly Hall', display_order: 2, is_active: true, show_on_landing: true },
-    { code: 'instrumentalists', name: 'Instrumentalists Ministry', description: 'Serves the church through disciplined, excellent and worshipful instrumental ministry.', meeting_day: 'Tuesdays & Saturdays', meeting_time: '5:00 PM', meeting_venue: 'Music Room', display_order: 3, is_active: true, show_on_landing: true },
-    { code: 'ushering', name: 'Ushering Ministry', description: 'Welcomes worshippers, maintains order and creates a warm environment for every gathering.', meeting_day: 'Thursdays', meeting_time: '5:00 PM', meeting_venue: 'Chapel Foyer', display_order: 4, is_active: true, show_on_landing: true },
-    { code: 'catering', name: 'Catering Ministry', description: 'Provides hospitality, meals and refreshments for fellowships, conferences and CU activities.', meeting_day: 'Saturdays / Events', meeting_time: 'As scheduled', meeting_venue: 'Dining Hall Kitchen', display_order: 5, is_active: true, show_on_landing: true },
-    { code: 'media', name: 'Media Ministry', description: 'Handles photography, audiovisual production, livestreaming, publicity and digital ministry.', meeting_day: 'Fridays', meeting_time: '4:30 PM', meeting_venue: 'Media Studio', display_order: 6, is_active: true, show_on_landing: true },
-    { code: 'creative', name: 'Creative Ministry', description: 'Proclaims the Gospel through drama, poetry, spoken word, dance and creative expression.', meeting_day: 'Mondays & Wednesdays', meeting_time: '5:00 PM', meeting_venue: 'Amphitheatre', display_order: 7, is_active: true, show_on_landing: true },
-    { code: 'technicians', name: 'Technicians Ministry', description: 'Provides sound, lighting, electrical, stage and technical support for ministry gatherings.', meeting_day: 'Saturdays / Events', meeting_time: 'As scheduled', meeting_venue: 'Control Booth', display_order: 8, is_active: true, show_on_landing: true },
-    { code: 'high_school', name: 'High School Ministry', description: 'Evangelism, mentorship and discipleship outreach to secondary schools and young people.', meeting_day: 'Sundays', meeting_time: '2:00 PM', meeting_venue: 'Assigned Mission Field', display_order: 9, is_active: true, show_on_landing: true },
-    { code: 'hospital', name: 'Hospital Ministry', description: 'Visits patients and healthcare communities with prayer, encouragement and practical care.', meeting_day: 'Saturdays', meeting_time: '10:00 AM', meeting_venue: 'Assigned Hospital', display_order: 10, is_active: true, show_on_landing: true },
-    { code: 'brothers', name: "Brothers' Ministry", description: 'Builds godly men through fellowship, accountability, prayer and leadership development.', meeting_day: 'Alternate Fridays', meeting_time: '5:00 PM', meeting_venue: 'Hostel / Assigned Venue', display_order: 11, is_active: true, show_on_landing: true },
-    { code: 'sisters', name: "Sisters' Ministry", description: 'Nurtures godly women through sisterhood, mentorship, prayer and spiritual formation.', meeting_day: 'Alternate Fridays', meeting_time: '5:00 PM', meeting_venue: 'Chapel Hall', display_order: 12, is_active: true, show_on_landing: true },
+    { code: 'intercessory', name: 'Intercessory Ministry' },
+    { code: 'worship', name: 'Praise & Worship Ministry' },
+    { code: 'instrumentalists', name: 'Instrumentalists Ministry' },
+    { code: 'ushering', name: 'Ushering Ministry' },
+    { code: 'catering', name: 'Catering Ministry' },
+    { code: 'media', name: 'Media Ministry' },
+    { code: 'creative', name: 'Creative Ministry' },
+    { code: 'technicians', name: 'Technicians Ministry' },
+    { code: 'high_school', name: 'High School Ministry' },
+    { code: 'hospital', name: 'Hospital Ministry' },
+    { code: 'brothers', name: "Brothers' Ministry" },
+    { code: 'sisters', name: "Sisters' Ministry" },
   ]);
 
   // --- Constitutional Committees (Chapter 7) --------------------------------
@@ -568,89 +578,6 @@ export async function seed() {
     },
   ]);
 
-
-  // --- Operational weekly spiritual rhythm ---------------------------------
-  // The weekly_programmes table is user-owned data and requires a real creator.
-  // Seed the canonical public rhythm whenever an active user exists. The first
-  // production boot may happen before the first administrator is created; in
-  // that case the seed simply skips these rows and the create-admin command
-  // runs this seed again after creating the admin.
-  const [activeUsers] = await pool.query(
-    `SELECT id FROM users WHERE account_status = 'active' AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 1`
-  );
-  const seedOwner = (activeUsers as { id: string }[])[0]?.id;
-
-  if (seedOwner) {
-    const nextWeekday = (weekday: number, hour: number, minute: number, durationHours: number) => {
-      const now = new Date();
-      const result = new Date(now);
-      result.setHours(hour, minute, 0, 0);
-      const currentDay = result.getDay();
-      let delta = (weekday - currentDay + 7) % 7;
-      if (delta === 0 && result <= now) delta = 7;
-      result.setDate(result.getDate() + delta);
-      const end = new Date(result.getTime() + durationHours * 60 * 60 * 1000);
-      const toMysql = (d: Date) => d.toISOString().slice(0, 19).replace('T', ' ');
-      return { start: toMysql(result), end: toMysql(end) };
-    };
-
-    const weeklyRows = [
-      { code: 'monday-evangelism', type: 'evangelism', theme: 'E-Teams Fellowship / Door-to-Door Evangelism', weekday: 1, hour: 17, minute: 0, duration: 2, venue: 'TUM Campus / E-Team Centres' },
-      { code: 'tuesday-fellowship', type: 'midweek_fellowship', theme: 'Tuesday Fellowship', weekday: 2, hour: 17, minute: 0, duration: 2, venue: 'Main Sanctuary' },
-      { code: 'thursday-bible-study', type: 'bible_study', theme: 'Bible Study / BEST', weekday: 4, hour: 17, minute: 0, duration: 1.5, venue: 'Main Sanctuary / BEST Groups' },
-      { code: 'friday-ministry-practice', type: 'ministry_practice', theme: 'Ministry Practices', weekday: 5, hour: 16, minute: 30, duration: 2.5, venue: 'TUMCU Ministry Spaces' },
-      { code: 'friday-kesha', type: 'overnight_kesha', theme: 'Monthly Kesha', weekday: 5, hour: 21, minute: 0, duration: 8, venue: 'Main Sanctuary' },
-      { code: 'sunday-service', type: 'sunday_service', theme: 'Sunday Main Sanctuary Service', weekday: 0, hour: 8, minute: 0, duration: 5, venue: 'Main Sanctuary' },
-    ];
-
-    for (const row of weeklyRows) {
-      const existing = await pool.query(
-        `SELECT id FROM weekly_programmes WHERE programme_type = :type LIMIT 1`,
-        { type: row.type }
-      );
-      if ((existing[0] as { id: string }[]).length) continue;
-      const schedule = nextWeekday(row.weekday, row.hour, row.minute, row.duration);
-      await pool.query(
-        `INSERT INTO weekly_programmes
-          (id, programme_type, theme, scripture_reference, scheduled_at, venue, created_by)
-         VALUES (:id, :type, :theme, NULL, :scheduledAt, :venue, :createdBy)`,
-        { id: randomUUID(), type: row.type, theme: row.theme, scheduledAt: schedule.start, venue: row.venue, createdBy: seedOwner }
-      );
-    }
-    logger.info('Seeded canonical weekly spiritual rhythm.');
-
-    // --- Starter public events ----------------------------------------------
-    const nextSunday = nextWeekday(0, 8, 0, 5);
-    const nextFriday = nextWeekday(5, 21, 0, 8);
-    const nextThursday = nextWeekday(4, 17, 0, 1.5);
-    const events = [
-      { title: 'TUMCU Sunday Main Sanctuary Service', event_type: 'sunday_service', description: 'Weekly main sanctuary service of the Technical University of Mombasa Christian Union.', start_at: nextSunday.start, end_at: nextSunday.end, location: 'Main Sanctuary', topic: 'Worship, Word and Fellowship' },
-      { title: 'TUMCU Monthly Kesha', event_type: 'kesha', description: 'Monthly overnight prayer, worship and intercession.', start_at: nextFriday.start, end_at: nextFriday.end, location: 'Main Sanctuary', topic: 'Night of Prayer' },
-      { title: 'TUMCU Bible Study / BEST', event_type: 'bible_study', description: 'Weekly Bible Study and BEST discipleship gathering.', start_at: nextThursday.start, end_at: nextThursday.end, location: 'Main Sanctuary / BEST Groups', topic: 'The Word that forms us' },
-    ];
-    for (const event of events) {
-      const [existingEventRows] = await pool.query(
-        `SELECT id FROM events WHERE title = :title LIMIT 1`,
-        { title: event.title }
-      );
-      if ((existingEventRows as { id: string }[]).length) continue;
-      await pool.query(
-        `INSERT INTO events
-          (id, title, event_type, description, speaker, topic, banner_url, start_at, end_at, location, organized_by, status)
-         VALUES (:id, :title, :eventType, :description, NULL, :topic, NULL, :startAt, :endAt, :location, :organizedBy, 'approved')`,
-        {
-          id: randomUUID(), title: event.title, eventType: event.event_type,
-          description: event.description, topic: event.topic,
-          startAt: event.start_at, endAt: event.end_at,
-          location: event.location, organizedBy: seedOwner,
-        }
-      );
-    }
-    logger.info('Seeded starter public events.');
-  } else {
-    logger.info('No active user yet; operational weekly programmes/events will be seeded when the first admin is created.');
-  }
-
   // --- Membership Declaration (constitutional wording — placeholder) --------
   await pool.query(
     `INSERT INTO membership_declarations (id, declaration_text, version, is_active)
@@ -666,19 +593,16 @@ export async function seed() {
     }
   );
 
+  // Public CMS bootstrap: populate the initial ministry presentation and weekly rhythm.
+  // Events are seeded later by create-admin, once a real organizer user exists.
+  await seedOperationalContent();
+
   logger.info('✅ Seeding complete.');
+  process.exit(0);
 }
 
-if (process.argv[1]?.endsWith('seed.cjs')) {
-  seed()
-    .then(() => {
-      // `pool` is a compatibility wrapper around the real MySQL pool and
-      // intentionally does not expose `.end()`. Exit only after seeding has
-      // completed so the production Docker command can start the server.
-      process.exit(0);
-    })
-    .catch((err) => {
-      console.error('❌ Seeding failed:', err);
-      process.exit(1);
-    });
-}
+seed().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error('❌ Seeding failed:', err);
+  process.exit(1);
+});

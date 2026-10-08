@@ -6,17 +6,11 @@ import { asyncHandler } from '../../../utils/asyncHandler';
 import { NotFoundError, BadRequestError } from '../../../utils/errors';
 import { calendarDownloadService } from '../services/calendar-download.service';
 
-/**
- * API-facing weekly programme shape. The database stores a programme as
- * programme_type + theme + scheduled_at + venue; the UI historically used
- * day/title/time. These helpers keep that UI contract without querying
- * nonexistent columns.
- */
 export interface WeeklyProgramme {
   id: string;
   day: string;
   title: string;
-  programme_type: string;
+  programme_type?: string;
   time: string;
   venue: string;
   leader?: string;
@@ -28,23 +22,10 @@ export interface WeeklyProgramme {
   anchor_monday?: string;
   anchor_programme?: string;
   is_configurable?: number;
-  scheduled_at?: string;
   created_at?: string;
   updated_at?: string;
   active_this_week_title?: string;
-  alternating_info?: Record<string, unknown>;
-}
-
-interface ProgrammeRow {
-  id: string;
-  programme_type: string;
-  theme: string | null;
-  scripture_reference: string | null;
-  scheduled_at: string;
-  venue: string | null;
-  created_by: string;
-  created_at?: string;
-  updated_at?: string;
+  alternating_info?: Record<string, any>;
 }
 
 const DAY_ORDER: Record<string, number> = {
@@ -57,106 +38,50 @@ const DAY_ORDER: Record<string, number> = {
   sunday: 7,
 };
 
-const TYPE_TITLES: Record<string, string> = {
-  sunday_service: 'Sunday Main Sanctuary Service',
-  midweek_fellowship: 'Tuesday Fellowship',
-  bible_study: 'Bible Study / BEST',
-  prayer_meeting: 'Prayer Meeting',
-  overnight_kesha: 'Monthly Kesha',
-  evangelism: 'E-Teams Fellowship / Door-to-Door Evangelism',
-  leadership_meeting: 'Leadership Meeting',
-  committee_meeting: 'Committee Meeting',
-  ministry_practice: 'Ministry Practices',
-  worship_practice: 'Worship Practice',
-  instrument_practice: 'Instrument Practice',
-  discipleship_class: 'Discipleship Class',
-};
+const DB_PROGRAMME_TYPES = new Set([
+  'sunday_service',
+  'midweek_fellowship',
+  'bible_study',
+  'prayer_meeting',
+  'overnight_kesha',
+  'evangelism',
+  'leadership_meeting',
+  'committee_meeting',
+  'ministry_practice',
+  'worship_practice',
+  'instrument_practice',
+  'discipleship_class',
+]);
 
-const TYPE_MAP: Record<string, string> = {
-  fellowship: 'midweek_fellowship',
-  midweek_fellowship: 'midweek_fellowship',
-  sunday: 'sunday_service',
-  sunday_service: 'sunday_service',
-  bible_study: 'bible_study',
-  prayer: 'prayer_meeting',
-  prayer_meeting: 'prayer_meeting',
-  kesha: 'overnight_kesha',
-  overnight_kesha: 'overnight_kesha',
-  evangelism: 'evangelism',
-  ministry_practice: 'ministry_practice',
-  worship_practice: 'worship_practice',
-  instrument_practice: 'instrument_practice',
-  leadership_meeting: 'leadership_meeting',
-  committee_meeting: 'committee_meeting',
-  discipleship_class: 'discipleship_class',
-};
-
-function parseMysqlDate(value: string | Date): { day: string; time: string } {
-  const raw = String(value).replace('T', ' ');
-  const datePart = raw.slice(0, 10);
-  const timePart = raw.slice(11, 16) || '00:00';
-  const [year, month, day] = datePart.split('-').map(Number);
-  const jsDate = new Date(Date.UTC(year || 1970, (month || 1) - 1, day || 1));
-  const weekday = jsDate.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
-  const [h, m] = timePart.split(':').map(Number);
-  const suffix = (h || 0) >= 12 ? 'PM' : 'AM';
-  const hour12 = ((h || 0) % 12) || 12;
-  return { day: weekday, time: `${hour12}:${String(m || 0).padStart(2, '0')} ${suffix}` };
+function normalizeProgrammeType(value: unknown): string {
+  const raw = String(value || '').trim().toLowerCase();
+  if (DB_PROGRAMME_TYPES.has(raw)) return raw;
+  if (raw === 'service' || raw === 'empowerment' || raw === 'fellowship') return 'midweek_fellowship';
+  if (raw === 'discipleship') return 'discipleship_class';
+  return 'midweek_fellowship';
 }
 
-function toProgrammeView(row: ProgrammeRow): WeeklyProgramme {
-  const { day, time } = parseMysqlDate(row.scheduled_at);
-  return {
-    id: row.id,
-    day,
-    title: row.theme || TYPE_TITLES[row.programme_type] || 'TUMCU Programme',
-    programme_type: row.programme_type,
-    time,
-    venue: row.venue || 'TUMCU Campus',
-    description: row.scripture_reference ? `Scripture: ${row.scripture_reference}` : undefined,
-    scheduled_at: row.scheduled_at,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  };
-}
-
-function nextOccurrence(dayName: string, time: string): string {
-  const weekday = DAY_ORDER[dayName.toLowerCase()];
-  if (!weekday) throw new BadRequestError('Invalid programme day');
-  const match = String(time).trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
-  if (!match) throw new BadRequestError('Invalid programme time');
-  let hour = Number(match[1]);
-  const minute = Number(match[2] || 0);
-  const suffix = (match[3] || '').toUpperCase();
-  if (suffix === 'PM' && hour < 12) hour += 12;
-  if (suffix === 'AM' && hour === 12) hour = 0;
-  if (hour > 23 || minute > 59) throw new BadRequestError('Invalid programme time');
-
-  const now = new Date();
-  const result = new Date(now);
-  result.setHours(hour, minute, 0, 0);
-  const current = result.getDay() === 0 ? 7 : result.getDay();
-  let delta = (weekday - current + 7) % 7;
-  if (delta === 0 && result <= now) delta = 7;
-  result.setDate(result.getDate() + delta);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${result.getFullYear()}-${pad(result.getMonth() + 1)}-${pad(result.getDate())} ${pad(hour)}:${pad(minute)}:00`;
-}
-
-// 2026-09-21 is the alternating E-Teams anchor Monday.
+// Calculate Monday activity based on anchor: 2026-09-21 = E-Teams Fellowship
 export function calculateMondaySchedule(targetDate: Date = new Date()) {
   const d = new Date(targetDate);
-  const day = d.getDay();
+  const day = d.getDay(); // 0 is Sunday, 1 is Monday
+  // Get Monday of that week
   const diffToMon = d.getDate() - day + (day === 0 ? -6 : 1);
   const currentMonday = new Date(d.getFullYear(), d.getMonth(), diffToMon);
   currentMonday.setHours(0, 0, 0, 0);
-  const anchorMonday = new Date(2026, 8, 21);
+
+  // Anchor Monday: 2026-09-21 was E-Teams Fellowship
+  const anchorMonday = new Date(2026, 8, 21); // Month is 0-indexed, so 8 is September
   anchorMonday.setHours(0, 0, 0, 0);
+
   const diffMs = currentMonday.getTime() - anchorMonday.getTime();
   const diffWeeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
   const isETeams = Math.abs(diffWeeks) % 2 === 0;
+
   const currentTitle = isETeams ? 'E-Teams Fellowship' : 'Door to Door Evangelism';
   const nextTitle = isETeams ? 'Door to Door Evangelism' : 'E-Teams Fellowship';
+
+  // Generate next 12 Mondays forecast
   const upcomingMondays = [];
   for (let i = 0; i < 12; i++) {
     const nextMon = new Date(currentMonday);
@@ -172,174 +97,265 @@ export function calculateMondaySchedule(targetDate: Date = new Date()) {
         : 'Grassroots door-to-door campus and hostel gospel outreach, personal evangelism, and tract distribution.',
     });
   }
-  return { thisMondayDate: currentMonday.toISOString().split('T')[0], isETeams, currentTitle, nextTitle, upcomingMondays };
+
+  return {
+    thisMondayDate: currentMonday.toISOString().split('T')[0],
+    isETeams,
+    currentTitle,
+    nextTitle,
+    upcomingMondays,
+  };
 }
 
 class ProgrammesController {
   list = asyncHandler(async (_req: Request, res: Response) => {
-    const rows = await query<ProgrammeRow[]>(
-      `SELECT id, programme_type, theme, scripture_reference, scheduled_at, venue, created_by, created_at, updated_at
-         FROM weekly_programmes
-        ORDER BY scheduled_at ASC`
-    );
+    const rows = await query<WeeklyProgramme[]>('SELECT * FROM weekly_programmes');
     const monSchedule = calculateMondaySchedule();
-    const enriched = rows.map(toProgrammeView).map((p) =>
-      p.day.toLowerCase() === 'monday'
-        ? {
-            ...p,
-            title: monSchedule.currentTitle,
-            active_this_week_title: monSchedule.currentTitle,
-            alternating_info: {
-              current_week_activity: monSchedule.currentTitle,
-              next_week_activity: monSchedule.nextTitle,
-              this_monday_date: monSchedule.thisMondayDate,
-              rule: 'Alternating every Monday between E-Teams Fellowship and Door to Door Evangelism',
-              upcoming_mondays: monSchedule.upcomingMondays,
-            },
-          }
-        : p
-    );
-    enriched.sort((a, b) => (DAY_ORDER[a.day.toLowerCase()] ?? 99) - (DAY_ORDER[b.day.toLowerCase()] ?? 99));
-    return sendSuccess(res, enriched, 'Weekly programmes retrieved', 200, {
-      total: enriched.length,
+
+    const enriched = rows.map((p) => {
+      if (p.day?.toLowerCase() === 'monday') {
+        return {
+          ...p,
+          active_this_week_title: monSchedule.currentTitle,
+          alternating_info: {
+            current_week_activity: monSchedule.currentTitle,
+            next_week_activity: monSchedule.nextTitle,
+            this_monday_date: monSchedule.thisMondayDate,
+            rule: 'Alternating every Monday between E-Teams Fellowship and Door to Door Evangelism',
+            upcoming_mondays: monSchedule.upcomingMondays,
+          },
+        };
+      }
+      return p;
+    });
+
+    const sorted = [...enriched].sort((a, b) => {
+      const orderA = DAY_ORDER[a.day?.toLowerCase()?.trim()] ?? 99;
+      const orderB = DAY_ORDER[b.day?.toLowerCase()?.trim()] ?? 99;
+      return orderA - orderB;
+    });
+
+    return sendSuccess(res, sorted, 'Weekly programmes retrieved', 200, {
+      total: sorted.length,
       monday_schedule: monSchedule,
     });
   });
 
   getMondayForecast = asyncHandler(async (_req: Request, res: Response) => {
-    return sendSuccess(res, calculateMondaySchedule(), 'Monday alternating schedule forecast retrieved');
+    const schedule = calculateMondaySchedule();
+    return sendSuccess(res, schedule, 'Monday alternating schedule forecast retrieved');
   });
 
   getById = asyncHandler(async (req: Request, res: Response) => {
-    const rows = await query<ProgrammeRow[]>(
-      `SELECT id, programme_type, theme, scripture_reference, scheduled_at, venue, created_by, created_at, updated_at
-         FROM weekly_programmes WHERE id = :id LIMIT 1`,
-      { id: req.params.id }
-    );
+    const rows = await query<WeeklyProgramme[]>('SELECT * FROM weekly_programmes WHERE id = :id LIMIT 1', {
+      id: req.params.id,
+    });
     if (!rows.length) throw new NotFoundError('Programme');
-    const programme = toProgrammeView(rows[0]);
-    const monSchedule = calculateMondaySchedule();
-    if (programme.day.toLowerCase() === 'monday') {
-      programme.title = monSchedule.currentTitle;
-      programme.active_this_week_title = monSchedule.currentTitle;
-      programme.alternating_info = monSchedule;
+    const p = rows[0];
+    if (p.day?.toLowerCase() === 'monday') {
+      const monSchedule = calculateMondaySchedule();
+      return sendSuccess(res, {
+        ...p,
+        active_this_week_title: monSchedule.currentTitle,
+        alternating_info: monSchedule,
+      }, 'Programme retrieved');
     }
-    return sendSuccess(res, programme, 'Programme retrieved');
+    return sendSuccess(res, p, 'Programme retrieved');
   });
 
   create = asyncHandler(async (req: Request, res: Response) => {
-    const day = String(req.body.day || 'Sunday');
-    const time = String(req.body.time || '8:00 AM');
-    const programmeType = TYPE_MAP[String(req.body.programme_type || req.body.type || 'sunday_service').toLowerCase()] || 'sunday_service';
-    const title = String(req.body.title || TYPE_TITLES[programmeType] || 'TUMCU Programme').trim();
     const id = req.body.id || uuidv4();
-    const scheduledAt = nextOccurrence(day, time);
+    const newProg: WeeklyProgramme = {
+      id,
+      day: req.body.day || 'Sunday',
+      title: req.body.title || 'Fellowship Program',
+      programme_type: normalizeProgrammeType(req.body.programme_type || req.body.type),
+      time: req.body.time || '5:00 PM – 7:00 PM',
+      venue: req.body.venue || 'Main Sanctuary',
+      leader: req.body.leader || '',
+      description: req.body.description || '',
+      alternating_enabled: req.body.alternating_enabled ? 1 : 0,
+      interval_type: req.body.interval_type || 'weekly',
+      created_at: new Date().toISOString(),
+    };
+
     await query(
-      `INSERT INTO weekly_programmes
-        (id, programme_type, theme, scripture_reference, scheduled_at, venue, created_by)
-       VALUES (:id, :programmeType, :theme, :scriptureReference, :scheduledAt, :venue, :createdBy)`,
-      {
-        id,
-        programmeType,
-        theme: title,
-        scriptureReference: req.body.scripture_reference || null,
-        scheduledAt,
-        venue: req.body.venue || 'TUMCU Campus',
-        createdBy: req.user!.sub,
-      }
+      `INSERT INTO weekly_programmes (id, day, title, programme_type, time, venue, leader, description, alternating_enabled, created_at)
+       VALUES (:id, :day, :title, :programme_type, :time, :venue, :leader, :description, :alternating_enabled, :created_at)`,
+      newProg as unknown as Record<string, unknown>
     );
-    const rows = await query<ProgrammeRow[]>(`SELECT * FROM weekly_programmes WHERE id = :id`, { id });
-    return sendSuccess(res, toProgrammeView(rows[0]), 'Weekly programme created successfully', 201);
+
+    return sendSuccess(res, newProg, 'Weekly programme created successfully', 201);
   });
 
   update = asyncHandler(async (req: Request, res: Response) => {
-    const rows = await query<ProgrammeRow[]>(`SELECT * FROM weekly_programmes WHERE id = :id LIMIT 1`, { id: req.params.id });
-    if (!rows.length) throw new NotFoundError('Programme');
-    const existing = toProgrammeView(rows[0]);
-    const day = req.body.day ?? existing.day;
-    const time = req.body.time ?? existing.time;
-    const scheduledAt = nextOccurrence(day, time);
-    const programmeType = TYPE_MAP[String(req.body.programme_type ?? existing.programme_type).toLowerCase()] || existing.programme_type;
+    const id = req.params.id;
+    const existing = await query<WeeklyProgramme[]>('SELECT * FROM weekly_programmes WHERE id = :id LIMIT 1', { id });
+    if (!existing.length) throw new NotFoundError('Programme');
+
+    const updated: WeeklyProgramme = {
+      ...existing[0],
+      day: req.body.day !== undefined ? req.body.day : existing[0].day,
+      title: req.body.title !== undefined ? req.body.title : existing[0].title,
+      programme_type: req.body.programme_type !== undefined ? normalizeProgrammeType(req.body.programme_type) : existing[0].programme_type,
+      time: req.body.time !== undefined ? req.body.time : existing[0].time,
+      venue: req.body.venue !== undefined ? req.body.venue : existing[0].venue,
+      leader: req.body.leader !== undefined ? req.body.leader : existing[0].leader,
+      description: req.body.description !== undefined ? req.body.description : existing[0].description,
+      alternating_enabled: req.body.alternating_enabled !== undefined ? (req.body.alternating_enabled ? 1 : 0) : existing[0].alternating_enabled,
+      updated_at: new Date().toISOString(),
+    };
+
     await query(
-      `UPDATE weekly_programmes
-          SET programme_type = :programmeType,
-              theme = :theme,
-              scripture_reference = :scriptureReference,
-              scheduled_at = :scheduledAt,
-              venue = :venue
-        WHERE id = :id`,
-      {
-        id: req.params.id,
-        programmeType,
-        theme: req.body.title ?? existing.title,
-        scriptureReference: req.body.scripture_reference ?? null,
-        scheduledAt,
-        venue: req.body.venue ?? existing.venue,
-      }
+      `UPDATE weekly_programmes SET day = :day, title = :title, programme_type = :programme_type, time = :time, venue = :venue, leader = :leader, description = :description, alternating_enabled = :alternating_enabled, updated_at = :updated_at WHERE id = :id`,
+      updated as unknown as Record<string, unknown>
     );
-    const updatedRows = await query<ProgrammeRow[]>(`SELECT * FROM weekly_programmes WHERE id = :id`, { id: req.params.id });
-    return sendSuccess(res, toProgrammeView(updatedRows[0]), 'Weekly programme updated successfully');
+
+    return sendSuccess(res, updated, 'Weekly programme updated successfully');
   });
 
   remove = asyncHandler(async (req: Request, res: Response) => {
-    await query('DELETE FROM weekly_programmes WHERE id = :id', { id: req.params.id });
+    const id = req.params.id;
+    await query('DELETE FROM weekly_programmes WHERE id = :id', { id });
     return sendSuccess(res, null, 'Weekly programme removed successfully');
   });
 
+  // Helper to generate system iCalendar content as fallback
   private generateSystemIcs = async (): Promise<string> => {
     const events = await query<any[]>('SELECT * FROM events');
-    const programmeRows = await query<ProgrammeRow[]>('SELECT * FROM weekly_programmes ORDER BY scheduled_at ASC');
-    const programmes = programmeRows.map(toProgrammeView);
+    const programmes = await query<WeeklyProgramme[]>('SELECT * FROM weekly_programmes');
 
-    const formatIcsDate = (dateStr: string): string => new Date(dateStr).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    const cleanString = (str: string) => (str || '').replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+    function formatIcsDate(dateStr: string): string {
+      const d = new Date(dateStr);
+      return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    }
+
+    function cleanString(str: string): string {
+      return (str || '').replace(/\r?\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+    }
+
     const now = formatIcsDate(new Date().toISOString());
-    const ics = [
-      'BEGIN:VCALENDAR', 'VERSION:2.0',
+
+    let ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
       'PRODID:-//Technical University of Mombasa Christian Union//TUMCU Semester Calendar//EN',
-      'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
       'X-WR-CALNAME:TUMCU Semester & Weekly Programmes',
       'X-WR-TIMEZONE:Africa/Nairobi',
+      'X-WR-CALDESC:Technical University of Mombasa Christian Union official semester schedule, Friday services, Sunday services, and weekly fellowships.',
     ];
 
+    // Add semester events
     for (const evt of events) {
       const dtStart = evt.start_at ? formatIcsDate(evt.start_at) : now;
       const dtEnd = evt.end_at ? formatIcsDate(evt.end_at) : formatIcsDate(new Date(new Date(evt.start_at).getTime() + 2 * 3600000).toISOString());
       ics.push(
-        'BEGIN:VEVENT', `UID:${evt.id || uuidv4()}@tumcu.ac.ke`, `DTSTAMP:${now}`,
-        `DTSTART:${dtStart}`, `DTEND:${dtEnd}`, `SUMMARY:${cleanString(evt.title)}`,
-        `DESCRIPTION:${cleanString(evt.description || '')}`, `LOCATION:${cleanString(evt.location || 'Main Sanctuary')}`,
-        'STATUS:CONFIRMED', 'TRANSP:OPAQUE', 'END:VEVENT'
+        'BEGIN:VEVENT',
+        `UID:${evt.id || uuidv4()}@tumcu.ac.ke`,
+        `DTSTAMP:${now}`,
+        `DTSTART:${dtStart}`,
+        `DTEND:${dtEnd}`,
+        `SUMMARY:${cleanString(evt.title)}`,
+        `DESCRIPTION:${cleanString((evt.description || '') + (evt.preacher ? `\\nMinister: ${evt.preacher}` : ''))}`,
+        `LOCATION:${cleanString(evt.venue || evt.location || 'Main Assembly Hall')}`,
+        'STATUS:CONFIRMED',
+        'TRANSP:OPAQUE',
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        'DESCRIPTION:Reminder: TUMCU Fellowship',
+        'TRIGGER:-PT30M',
+        'END:VALARM',
+        'END:VEVENT'
       );
     }
 
+    // Add recurring weekly programmes starting September 2026 to December 2026
+    const dayToIcsMap: Record<string, string> = {
+      monday: 'MO',
+      tuesday: 'TU',
+      wednesday: 'WE',
+      thursday: 'TH',
+      friday: 'FR',
+      sunday: 'SU',
+    };
+
     for (const prog of programmes) {
-      const day = prog.day.toLowerCase();
-      const byDay: Record<string, string> = { monday: 'MO', tuesday: 'TU', wednesday: 'WE', thursday: 'TH', friday: 'FR', sunday: 'SU' };
-      if (!byDay[day]) continue;
-      const start = formatIcsDate(prog.scheduled_at || new Date().toISOString());
-      const endDate = new Date(new Date(prog.scheduled_at || Date.now()).getTime() + 2 * 3600000);
-      const end = formatIcsDate(endDate.toISOString());
+      const dayKey = prog.day?.toLowerCase();
+      const byDay = dayToIcsMap[dayKey];
+      if (!byDay) continue;
+
+      if (dayKey === 'friday' || dayKey === 'sunday') continue;
+
+      let startHour = 17;
+      let startMinute = 0;
+      let endHour = 19;
+      let endMinute = 0;
+
+      if (prog.time.includes('6:00 PM')) {
+        startHour = 18;
+        endHour = 20;
+        endMinute = 30;
+      } else if (prog.time.includes('8:00 AM')) {
+        startHour = 8;
+        endHour = 12;
+        endMinute = 30;
+      }
+
+      const dayOffsetMap: Record<string, number> = {
+        monday: 21,
+        tuesday: 22,
+        wednesday: 23,
+        thursday: 24,
+      };
+
+      const startDay = dayOffsetMap[dayKey] || 21;
+      const startDate = new Date(Date.UTC(2026, 8, startDay, startHour, startMinute, 0));
+      const endDate = new Date(Date.UTC(2026, 8, startDay, endHour, endMinute, 0));
+
+      const dtStart = formatIcsDate(startDate.toISOString());
+      const dtEnd = formatIcsDate(endDate.toISOString());
+
       ics.push(
-        'BEGIN:VEVENT', `UID:${prog.id || uuidv4()}@tumcu.ac.ke`, `DTSTAMP:${now}`,
-        `DTSTART:${start}`, `DTEND:${end}`, `RRULE:FREQ=WEEKLY;BYDAY=${byDay[day]}`,
-        `SUMMARY:${cleanString(prog.title)}`, `DESCRIPTION:${cleanString(prog.description || 'TUMCU Weekly Programme')}`,
-        `LOCATION:${cleanString(prog.venue)}`, 'STATUS:CONFIRMED', 'TRANSP:OPAQUE', 'END:VEVENT'
+        'BEGIN:VEVENT',
+        `UID:${prog.id || uuidv4()}@tumcu.ac.ke`,
+        `DTSTAMP:${now}`,
+        `DTSTART:${dtStart}`,
+        `DTEND:${dtEnd}`,
+        `RRULE:FREQ=WEEKLY;UNTIL=20261220T235959Z;BYDAY=${byDay}`,
+        `SUMMARY:${cleanString(prog.title)}`,
+        `DESCRIPTION:${cleanString(prog.description || 'TUMCU Weekly Fellowship')}`,
+        `LOCATION:${cleanString(prog.venue || 'TUM Campus')}`,
+        'STATUS:CONFIRMED',
+        'TRANSP:OPAQUE',
+        'END:VEVENT'
       );
     }
+
     ics.push('END:VCALENDAR');
     return ics.join('\r\n');
   };
 
+  // Get current downloadable calendar metadata (custom uploaded vs system fallback)
   getCalendarInfo = asyncHandler(async (_req: Request, res: Response) => {
-    return sendSuccess(res, calendarDownloadService.getCalendarInfo(), 'Downloadable calendar info retrieved');
+    const info = calendarDownloadService.getCalendarInfo();
+    return sendSuccess(res, info, 'Downloadable calendar info retrieved');
   });
 
+  // Admin upload custom downloadable calendar file (PDF, ICS, Excel, etc.)
   uploadCalendar = asyncHandler(async (req: Request, res: Response) => {
     const { fileData, filename, title, semester, academic_year, notes } = req.body;
-    if (!fileData) throw new BadRequestError('Calendar fileData is required (base64 string or data URL)');
-    if (!filename) throw new BadRequestError('Calendar filename is required');
+    if (!fileData) {
+      throw new BadRequestError('Calendar fileData is required (base64 string or data URL)');
+    }
+    if (!filename) {
+      throw new BadRequestError('Calendar filename is required');
+    }
+
     const user = (req as any).user;
+    const uploaderName = user?.full_name || user?.name || user?.email || 'Executive Leadership';
+
     const result = calendarDownloadService.uploadCalendarFile({
       rawInput: fileData,
       originalFilename: filename,
@@ -348,22 +364,30 @@ class ProgrammesController {
       academic_year,
       notes,
       uploaded_by_id: user?.id,
-      uploaded_by_name: user?.full_name || user?.name || user?.email || 'Executive Leadership',
+      uploaded_by_name: uploaderName,
     });
+
     return sendSuccess(res, result, 'Official downloadable calendar uploaded successfully', 201);
   });
 
+  // Admin reset downloadable calendar to system-generated ICS
   resetCalendar = asyncHandler(async (_req: Request, res: Response) => {
-    return sendSuccess(res, calendarDownloadService.resetToDefault(), 'Downloadable calendar reset to system default');
+    const result = calendarDownloadService.resetToDefault();
+    return sendSuccess(res, result, 'Downloadable calendar reset to system default');
   });
 
+  // Download official calendar (admin-uploaded file if present, else generated .ics)
   downloadCalendar = asyncHandler(async (req: Request, res: Response) => {
-    calendarDownloadService.serveCalendar(res, req.query.inline === 'true', this.generateSystemIcs);
+    const inline = req.query.inline === 'true';
+    calendarDownloadService.serveCalendar(res, inline, this.generateSystemIcs);
   });
 
+  // Backward compatibility alias for /calendar.ics and /download-ics
   downloadIcs = asyncHandler(async (req: Request, res: Response) => {
-    calendarDownloadService.serveCalendar(res, req.query.inline === 'true', this.generateSystemIcs);
+    const inline = req.query.inline === 'true';
+    calendarDownloadService.serveCalendar(res, inline, this.generateSystemIcs);
   });
 }
 
 export const programmesController = new ProgrammesController();
+

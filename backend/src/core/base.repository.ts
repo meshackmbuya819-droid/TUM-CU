@@ -67,23 +67,8 @@ export class BaseRepository<T extends { id: string }> {
     );
     const total = countRows[0]?.total ?? 0;
 
-    // Not every legacy/reference table has a created_at column (for example
-    // broadcast_messages). Resolve a safe ordering column from the schema so
-    // public list endpoints do not fail with ER_BAD_FIELD_ERROR.
-    const orderRows = await query<{ column_name: string }[]>(
-      `SELECT column_name
-         FROM information_schema.columns
-        WHERE table_schema = DATABASE()
-          AND table_name = :tableName
-          AND column_name IN ('created_at', 'updated_at', 'scheduled_at', 'sent_at', 'id')
-        ORDER BY FIELD(column_name, 'created_at', 'updated_at', 'scheduled_at', 'sent_at', 'id')
-        LIMIT 1`,
-      { tableName: this.table }
-    );
-    const orderColumn = orderRows[0]?.column_name || 'id';
-
     const rows = await query<T[]>(
-      `SELECT * FROM ${this.table} ${where} ORDER BY ${orderColumn} DESC LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM ${this.table} ${where} ORDER BY created_at DESC LIMIT :limit OFFSET :offset`,
       { ...params, limit: pageSize, offset }
     );
 

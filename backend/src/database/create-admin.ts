@@ -20,9 +20,9 @@
  */
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import { pool } from '../config/database';
+import { checkDatabaseConnection, pool } from '../config/database';
 import { logger } from '../utils/logger';
-import { seed } from './seed';
+import { seedOperationalContent } from './operational-content';
 
 interface ParsedArgs {
   email?: string;
@@ -49,6 +49,13 @@ function generateStrongPassword(): string {
 }
 
 async function run() {
+  // Admin bootstrap must always target the production MySQL database.
+  const dbHealthy = await checkDatabaseConnection();
+  if (!dbHealthy) {
+    throw new Error('Production MySQL connection could not be verified; refusing to create the admin in the local memory store.');
+  }
+  logger.info('Database verified for admin bootstrap; using MySQL.');
+
   const args = parseArgs(process.argv.slice(2));
 
   if (!args.email) {
@@ -137,9 +144,9 @@ async function run() {
     { userId, roleId: superAdminRole.id }
   );
 
-  // Re-run idempotent reference/operational seeding now that an active user
-  // exists. This creates the canonical weekly rhythm and starter public events.
-  await seed();
+  // Once a real organizer exists, safely bootstrap the public event catalogue too.
+  // INSERT IGNORE means existing admin-edited events are never overwritten.
+  await seedOperationalContent(userId);
 
   logger.info('✅ Super Administrator account is ready.');
   logger.info(`   Email:    ${email}`);
