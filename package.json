@@ -5,12 +5,12 @@
   "description": "TUMCU Enterprise Christian Union Management Platform (TECUMP)",
   "scripts": {
     "dev": "tsx dev-server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild backend/src/database/migrate.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/migrate.cjs && esbuild backend/src/database/seed.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/seed.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && esbuild backend/src/database/migrate.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/migrate.cjs && esbuild backend/src/database/seed.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/seed.cjs && esbuild backend/src/database/create-admin.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/create-admin.cjs",
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
-    "db:migrate": "npm --prefix backend run migrate",
-    "db:seed": "npm --prefix backend run seed",
-    "db:create-admin": "npm --prefix backend run create:admin"
+    "db:migrate": "node dist/migrate.cjs",
+    "db:seed": "node dist/seed.cjs",
+    "db:create-admin": "node dist/create-admin.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

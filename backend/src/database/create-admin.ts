@@ -22,6 +22,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { pool } from '../config/database';
 import { logger } from '../utils/logger';
+import { seed } from './seed';
 
 interface ParsedArgs {
   email?: string;
@@ -135,6 +136,10 @@ async function run() {
       )`,
     { userId, roleId: superAdminRole.id }
   );
+
+  // Re-run idempotent reference/operational seeding now that an active user
+  // exists. This creates the canonical weekly rhythm and starter public events.
+  await seed();
 
   logger.info('✅ Super Administrator account is ready.');
   logger.info(`   Email:    ${email}`);
