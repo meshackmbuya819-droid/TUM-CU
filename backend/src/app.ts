@@ -61,10 +61,15 @@ export function createApp() {
   app.use(compression());
   app.use(express.json({ limit: '25mb' }));
   app.use(express.urlencoded({ limit: '25mb', extended: true }));
-  // Railway persistent volume /app/public/uploads and local public/uploads
-  if (fs.existsSync(env.UPLOAD_DIR)) {
-    app.use('/uploads', express.static(env.UPLOAD_DIR, { maxAge: '7d', immutable: true }));
+  // Create the upload directory before mounting static middleware. Previously,
+  // a fresh deployment without an existing directory never mounted /uploads,
+  // so newly uploaded photos returned URLs that could not be opened.
+  try {
+    fs.mkdirSync(env.UPLOAD_DIR, { recursive: true });
+  } catch (error) {
+    logger.error({ error, uploadDir: env.UPLOAD_DIR }, 'Could not initialize upload directory');
   }
+  app.use('/uploads', express.static(env.UPLOAD_DIR, { maxAge: '7d', immutable: true }));
   app.use('/community', express.static(path.resolve(process.cwd(), 'public/community')));
   app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/health' } }));
 

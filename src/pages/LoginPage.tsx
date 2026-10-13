@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { ArrowLeft, Home, Sparkles, AlertCircle, Lock, Mail, CheckCircle2, Shield } from 'lucide-react';
+import { ArrowLeft, Home, Sparkles, AlertCircle, Lock, Mail, CheckCircle2, Shield, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { fetchCurrentSession, login } from '@/features/auth/auth.api';
 import { useAuthStore } from '@/store/auth.store';
@@ -23,6 +23,7 @@ export function LoginPage() {
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -193,13 +194,16 @@ export function LoginPage() {
                   <Lock size={16} />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
                   required
-                  className="w-full rounded-xl border border-white/30 bg-black/35 py-2.5 pl-10 pr-3.5 text-sm text-white placeholder-slate-300 shadow-inner backdrop-blur-sm focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/30 transition"
+                  className="w-full rounded-xl border border-white/30 bg-black/35 py-2.5 pl-10 pr-12 text-sm text-white placeholder-slate-300 shadow-inner backdrop-blur-sm focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/30 transition"
                 />
+                <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute inset-y-0 right-3 flex items-center text-slate-200 hover:text-white">
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
               </div>
             </div>
 

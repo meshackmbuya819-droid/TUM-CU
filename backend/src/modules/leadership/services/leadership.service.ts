@@ -77,6 +77,7 @@ export class LeadershipService extends BaseService<Leadership> {
     assignmentType: 'permanent' | 'acting' | 'co-opted' | 'temporary';
     academicYear?: string;
     notes?: string;
+    avatarUrl?: string;
   }): Promise<{ id: string }> {
     const position = await this.leadershipRepo.findPositionById(params.positionId);
     if (!position) {
@@ -115,6 +116,15 @@ export class LeadershipService extends BaseService<Leadership> {
       status: 'active',
       notes: params.notes || `Appointed as ${position.name} (${params.assignmentType})`,
     });
+
+    // Persist the optional admin-uploaded leader portrait on the user record.
+    // Public leadership directory queries already expose users.passport_photo_url.
+    if (params.avatarUrl) {
+      await query(
+        'UPDATE users SET passport_photo_url = :avatarUrl WHERE id = :userId',
+        { avatarUrl: params.avatarUrl, userId: params.userId }
+      );
+    }
 
     // Grant constitutional RBAC role to new leader
     await this.syncUserRoleForLeadership(params.userId, position.code, params.positionId, true);

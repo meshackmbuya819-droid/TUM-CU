@@ -97,6 +97,7 @@ export async function assignLeader(payload: {
   assignmentType: 'permanent' | 'acting' | 'co-opted' | 'temporary';
   academicYear?: string;
   notes?: string;
+  avatarUrl?: string;
 }): Promise<{ id: string }> {
   const { data } = await api.post<ApiResponse<{ id: string }>>('/leadership/assignments', payload);
   return data.data;

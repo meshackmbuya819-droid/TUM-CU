@@ -8,6 +8,8 @@ import {
   CheckCircle,
   AlertCircle,
   Award,
+  Camera,
+  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/Button';
 import {
@@ -16,6 +18,7 @@ import {
   type LeadershipPosition,
 } from '@/features/leadership/leadership.api';
 import { searchUsers } from '@/features/admin/admin.api';
+import { uploadLandingImage } from '@/features/landing-media/landing-media.api';
 
 interface LeaderAppointmentModalProps {
   isOpen: boolean;
@@ -42,6 +45,8 @@ export function LeaderAppointmentModal({
   const [userSearch, setUserSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedUserName, setSelectedUserName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const { data: positions = [] } = useQuery<LeadershipPosition[]>({
@@ -66,6 +71,7 @@ export function LeaderAppointmentModal({
         assignmentType,
         academicYear,
         notes,
+        avatarUrl: avatarUrl || undefined,
       }),
     onSuccess: () => {
       setSuccess(true);
@@ -74,11 +80,13 @@ export function LeaderAppointmentModal({
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard-summary'] });
       queryClient.invalidateQueries({ queryKey: ['my-responsibilities'] });
       queryClient.invalidateQueries({ queryKey: ['public-executives'] });
+      queryClient.invalidateQueries({ queryKey: ['leadership-directory'] });
       setTimeout(() => {
         setSuccess(false);
         onClose();
         setSelectedUserId('');
         setSelectedUserName('');
+        setAvatarUrl('');
         setUserSearch('');
         setNotes('');
       }, 1500);
@@ -227,6 +235,53 @@ export function LeaderAppointmentModal({
                   )}
                 </div>
               )}
+            </div>
+
+            {/* Optional profile portrait, stored with the selected member for the public directory */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+              <label className="block text-xs font-semibold text-slate-700">Leader Profile Picture (optional)</label>
+              <div className="flex items-center gap-3">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Leader profile preview" className="h-14 w-14 rounded-full object-cover border border-slate-200" />
+                ) : (
+                  <div className="h-14 w-14 rounded-full bg-white border border-dashed border-slate-300 flex items-center justify-center text-slate-400"><Camera size={20} /></div>
+                )}
+                <label className={`inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 ${!selectedUserId || uploadingAvatar ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-slate-100'}`}>
+                  <Upload size={14} /> {uploadingAvatar ? 'Uploading…' : avatarUrl ? 'Change picture' : 'Choose from computer'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={!selectedUserId || uploadingAvatar}
+                    className="hidden"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = '';
+                      if (!file) return;
+                      if (file.size > 8 * 1024 * 1024) {
+                        window.alert('Please choose an image smaller than 8 MB.');
+                        return;
+                      }
+                      setUploadingAvatar(true);
+                      try {
+                        const reader = new FileReader();
+                        const imageData = await new Promise<string>((resolve, reject) => {
+                          reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Could not read image'));
+                          reader.onerror = () => reject(new Error('Could not read image'));
+                          reader.readAsDataURL(file);
+                        });
+                        const uploaded = await uploadLandingImage(imageData, file.name);
+                        setAvatarUrl(uploaded.url);
+                      } catch {
+                        window.alert('Profile picture upload failed. Please try again.');
+                      } finally {
+                        setUploadingAvatar(false);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              {!selectedUserId && <p className="text-[11px] text-slate-500">Select a member first to enable picture upload.</p>}
+              <p className="text-[11px] text-slate-500">JPG, PNG or WebP; maximum 8 MB. Members will see this picture in the leaders directory.</p>
             </div>
 
             {/* 3. Appointment Type & Academic Year */}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { HeartHandshake, ArrowLeft, Home, Globe, GraduationCap, CheckCircle2, Shield } from 'lucide-react';
+import { HeartHandshake, ArrowLeft, Home, Globe, GraduationCap, CheckCircle2, Shield, Eye, EyeOff } from 'lucide-react';
 import { Card } from '@/components/Card';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
@@ -43,6 +43,7 @@ export function RegisterPage() {
     department: 'Institute of Computing and Informatics',
   });
   const [declarationChecked, setDeclarationChecked] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isFromVisitorCheckIn =
@@ -279,13 +280,23 @@ export function RegisterPage() {
                 value={form.phone_number ?? ''}
                 onChange={(e) => update('phone_number', e.target.value)}
               />
-              <Input
-                label="Account Password"
-                type="password"
-                value={form.password ?? ''}
-                onChange={(e) => update('password', e.target.value)}
-                hint="Minimum 10 characters with uppercase, lowercase, number, and special symbol."
-              />
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="registration-password" className="text-sm font-medium text-slate-700 dark:text-slate-200">Account Password</label>
+                <div className="relative">
+                  <Input
+                    id="registration-password"
+                    label={undefined}
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password ?? ''}
+                    onChange={(e) => update('password', e.target.value)}
+                    hint="Minimum 10 characters with uppercase, lowercase, number, and special symbol."
+                    className="w-full pr-12"
+                  />
+                  <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-3 flex items-center text-slate-500 hover:text-slate-800 dark:text-slate-300">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

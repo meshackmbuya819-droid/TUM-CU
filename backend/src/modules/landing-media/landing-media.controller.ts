@@ -23,6 +23,12 @@ export const landingMediaController = {
       throw new ValidationError('Image data is required (dataUrl or base64 string)');
     }
     const result = landingMediaService.uploadImage(rawData, filename || 'media.jpg');
+    // Return a backend-hosted absolute URL so the separate Vite/Railway frontend
+    // does not incorrectly request /uploads from its own domain.
+    const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+    const protocol = forwardedProto || req.protocol;
+    const host = req.get('host');
+    result.url = `${protocol}://${host}${result.url}`;
     return sendSuccess(res, result, 'Image uploaded successfully', 201);
   }),
 

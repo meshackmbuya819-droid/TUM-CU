@@ -3263,6 +3263,11 @@ var init_database = __esm({
         }
         return executeInMemoryQuery(sql, params);
       },
+      async end() {
+        if (mysqlPool) {
+          await mysqlPool.end();
+        }
+      },
       async getConnection() {
         if (mysqlPool && !useMemoryStore) {
           try {
@@ -3662,7 +3667,6 @@ var init_landing_media_service = __esm({
 // server.ts
 var import_express35 = __toESM(require("express"), 1);
 var import_path5 = __toESM(require("path"), 1);
-var import_vite = require("vite");
 
 // backend/src/app.ts
 var import_express34 = __toESM(require("express"));
@@ -8870,6 +8874,27 @@ var DAY_ORDER = {
   saturday: 6,
   sunday: 7
 };
+var DB_PROGRAMME_TYPES = /* @__PURE__ */ new Set([
+  "sunday_service",
+  "midweek_fellowship",
+  "bible_study",
+  "prayer_meeting",
+  "overnight_kesha",
+  "evangelism",
+  "leadership_meeting",
+  "committee_meeting",
+  "ministry_practice",
+  "worship_practice",
+  "instrument_practice",
+  "discipleship_class"
+]);
+function normalizeProgrammeType(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (DB_PROGRAMME_TYPES.has(raw)) return raw;
+  if (raw === "service" || raw === "empowerment" || raw === "fellowship") return "midweek_fellowship";
+  if (raw === "discipleship") return "discipleship_class";
+  return "midweek_fellowship";
+}
 function calculateMondaySchedule(targetDate = /* @__PURE__ */ new Date()) {
   const d = new Date(targetDate);
   const day = d.getDay();
@@ -8960,7 +8985,7 @@ var ProgrammesController = class {
       id,
       day: req.body.day || "Sunday",
       title: req.body.title || "Fellowship Program",
-      programme_type: req.body.programme_type || req.body.type || "fellowship",
+      programme_type: normalizeProgrammeType(req.body.programme_type || req.body.type),
       time: req.body.time || "5:00 PM \u2013 7:00 PM",
       venue: req.body.venue || "Main Sanctuary",
       leader: req.body.leader || "",
@@ -8984,7 +9009,7 @@ var ProgrammesController = class {
       ...existing[0],
       day: req.body.day !== void 0 ? req.body.day : existing[0].day,
       title: req.body.title !== void 0 ? req.body.title : existing[0].title,
-      programme_type: req.body.programme_type !== void 0 ? req.body.programme_type : existing[0].programme_type,
+      programme_type: req.body.programme_type !== void 0 ? normalizeProgrammeType(req.body.programme_type) : existing[0].programme_type,
       time: req.body.time !== void 0 ? req.body.time : existing[0].time,
       venue: req.body.venue !== void 0 ? req.body.venue : existing[0].venue,
       leader: req.body.leader !== void 0 ? req.body.leader : existing[0].leader,
@@ -9355,6 +9380,10 @@ var landingMediaController = {
       throw new ValidationError("Image data is required (dataUrl or base64 string)");
     }
     const result = landingMediaService.uploadImage(rawData, filename || "media.jpg");
+    const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+    const protocol = forwardedProto || req.protocol;
+    const host = req.get("host");
+    result.url = `${protocol}://${host}${result.url}`;
     return sendSuccess(res, result, "Image uploaded successfully", 201);
   }),
   resetMedia: asyncHandler(async (req, res) => {
@@ -10867,6 +10896,12 @@ var LeadershipService = class extends BaseService {
       status: "active",
       notes: params.notes || `Appointed as ${position.name} (${params.assignmentType})`
     });
+    if (params.avatarUrl) {
+      await query(
+        "UPDATE users SET passport_photo_url = :avatarUrl WHERE id = :userId",
+        { avatarUrl: params.avatarUrl, userId: params.userId }
+      );
+    }
     await this.syncUserRoleForLeadership(params.userId, position.code, params.positionId, true);
     if (memoryDb.tables.audit_logs) {
       memoryDb.tables.audit_logs.unshift({
@@ -12266,9 +12301,12 @@ function createApp() {
   app.use((0, import_compression.default)());
   app.use(import_express34.default.json({ limit: "25mb" }));
   app.use(import_express34.default.urlencoded({ limit: "25mb", extended: true }));
-  if (import_fs4.default.existsSync(env.UPLOAD_DIR)) {
-    app.use("/uploads", import_express34.default.static(env.UPLOAD_DIR, { maxAge: "7d", immutable: true }));
+  try {
+    import_fs4.default.mkdirSync(env.UPLOAD_DIR, { recursive: true });
+  } catch (error) {
+    logger.error({ error, uploadDir: env.UPLOAD_DIR }, "Could not initialize upload directory");
   }
+  app.use("/uploads", import_express34.default.static(env.UPLOAD_DIR, { maxAge: "7d", immutable: true }));
   app.use("/community", import_express34.default.static(import_path4.default.resolve(process.cwd(), "public/community")));
   app.use((0, import_pino_http.default)({ logger, autoLogging: { ignore: (req) => req.url === "/health" } }));
   app.use(
@@ -12349,46 +12387,12 @@ init_logger();
 init_database();
 async function startServer() {
   const app = createApp();
-  const isProd = process.env.NODE_ENV === "production";
   const PORT = Number(process.env.PORT) || 3e3;
-  if (!isProd) {
-    const vite = await (0, import_vite.createServer)({
-      server: { middlewareMode: true, host: "0.0.0.0", port: PORT, hmr: false },
-      appType: "spa"
-    });
-    app.use((req, res, next) => {
-      const url = req.url || "";
-      if (url === "/@vite/client" || url.startsWith("/@vite/client?")) {
-        const originalWrite = res.write.bind(res);
-        const originalEnd = res.end.bind(res);
-        const chunks = [];
-        res.write = function(chunk, ...args) {
-          if (chunk) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-          return true;
-        };
-        res.end = function(chunk, ...args) {
-          if (chunk) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-          let body = Buffer.concat(chunks).toString("utf-8");
-          body = body.replace(
-            /transport\.connect\(createHMRHandler\(handleMessage\)\);/g,
-            "/* HMR connection disabled in dev container */"
-          );
-          body = body.replace(/console\.error\(\s*([`'"])\[vite\]/g, "console.debug($1[vite]");
-          body = body.replace(/console\.error\(\s*`\[vite\]/g, "console.debug(`[vite]");
-          res.setHeader("content-length", Buffer.byteLength(body));
-          return originalEnd.call(res, body, ...args);
-        };
-      }
-      next();
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = import_path5.default.resolve(process.cwd(), "dist");
-    app.use(import_express35.default.static(distPath));
-    app.get("*", (_req, res) => {
-      res.sendFile(import_path5.default.join(distPath, "index.html"));
-    });
-  }
+  const distPath = import_path5.default.resolve(process.cwd(), "dist");
+  app.use(import_express35.default.static(distPath));
+  app.get("*", (_req, res) => {
+    res.sendFile(import_path5.default.join(distPath, "index.html"));
+  });
   const dbHealthy = await checkDatabaseConnection();
   if (!dbHealthy && env.NODE_ENV === "production") {
     logger.error("Refusing to start production without a verified database connection.");
@@ -12398,7 +12402,7 @@ async function startServer() {
     logger.warn("Starting without a verified database connection in non-production mode.");
   }
   const server = app.listen(PORT, "0.0.0.0", () => {
-    logger.info(`TECUMP Server running on http://0.0.0.0:${PORT} (${isProd ? "production" : "development"})`);
+    logger.info(`TECUMP Server running on http://0.0.0.0:${PORT} (production)`);
     logger.info(`Health check: http://0.0.0.0:${PORT}/health`);
   });
   try {
