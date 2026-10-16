@@ -25,3 +25,24 @@ export function RequireSuperAdmin() {
   if (!isSuperAdmin) return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }
+
+
+/**
+ * Dedicated leader portals must not be reachable by every authenticated member.
+ * Access is granted only when the active session contains an assigned role or
+ * one of the explicit permissions for that portal. The backend must enforce
+ * the same permissions on every data-changing/read API.
+ */
+export function RequireRoleOrPermission({
+  roles,
+  permissions,
+}: {
+  roles: string[];
+  permissions: string[];
+}) {
+  const hasRole = useAuthStore((s) => s.hasRole);
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const allowed = roles.some((role) => hasRole(role)) || permissions.some((permission) => hasPermission(permission));
+  if (!allowed) return <Navigate to="/dashboard" replace />;
+  return <Outlet />;
+}

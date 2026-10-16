@@ -154,7 +154,7 @@ export const ministryDetailsController = {
   // Leader Portal helper: Returns ministry of current leader
   getLeaderPortal: asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user!.sub;
-    const isSuperAdmin = req.permissions?.has('*');
+    const isSuperAdmin = req.permissions?.has('system.manage_roles') || req.permissions?.has('ministries.manage_all_members');
 
     let ministries: any[] = [];
     if (isSuperAdmin) {

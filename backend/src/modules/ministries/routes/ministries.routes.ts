@@ -6,7 +6,8 @@ const router = Router();
 
 // Public routes
 router.get('/', ministriesController.list);
-router.get('/leader-portal', authenticate, loadPermissions, requireAnyPermission('ministries.view', 'ministries.manage_members', 'system.manage_roles'), ministryDetailsController.getLeaderPortal);
+// Do not grant the leader portal to all members just because they can view ministries.
+router.get('/leader-portal', authenticate, loadPermissions, requireAnyPermission('ministries.manage_members', 'ministries.manage_all_members', 'system.manage_roles'), ministryDetailsController.getLeaderPortal);
 router.get('/:id/details', ministryDetailsController.get);
 router.get('/:id/members', authenticate, loadPermissions, requireAnyPermission('ministries.manage_members', 'ministries.manage_all_members', 'system.manage_roles'), enforceScope('ministry', 'ministries.manage_all_members', (req) => req.params.id), ministryDetailsController.getMembers);
 router.get('/:id/sessions', authenticate, loadPermissions, requireAnyPermission('ministries.manage_members', 'ministries.manage_all_members', 'system.manage_roles'), enforceScope('ministry', 'ministries.manage_all_members', (req) => req.params.id), ministryDetailsController.getSessions);

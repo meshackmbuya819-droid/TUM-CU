@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { RequireAuth } from '@/components/RequireAuth';
-import { RequireAnyPermission, RequirePermission, RequireSuperAdmin } from '@/components/RequirePermission';
+import { RequireAnyPermission, RequirePermission, RequireRoleOrPermission, RequireSuperAdmin } from '@/components/RequirePermission';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
@@ -91,9 +91,16 @@ export default function App() {
             <Route path="/dashboard/attendance" element={<AttendancePage />} />
             <Route path="/dashboard/bible-study" element={<BibleStudyGroupsPage />} />
             <Route path="/dashboard/discipleship" element={<BibleStudyGroupsPage />} />
-            <Route path="/dashboard/ministry-portal" element={<MinistryLeaderPortalPage />} />
-            <Route path="/dashboard/librarian" element={<LibrarianPortalPage />} />
-            <Route path="/dashboard/e-teams" element={<ETeamsPortalPage />} />
+            {/* Dedicated portals are shown only to the relevant appointed leader or an authorized administrator. */}
+            <Route element={<RequireRoleOrPermission roles={['ministry_leader']} permissions={['ministries.manage_members', 'ministries.manage_all_members', 'system.manage_roles']} />}>
+              <Route path="/dashboard/ministry-portal" element={<MinistryLeaderPortalPage />} />
+            </Route>
+            <Route element={<RequireRoleOrPermission roles={['librarian', 'library_manager']} permissions={['library.create', 'library.edit', 'system.manage_roles']} />}>
+              <Route path="/dashboard/librarian" element={<LibrarianPortalPage />} />
+            </Route>
+            <Route element={<RequireRoleOrPermission roles={['noret_chairperson', 'soret_chairperson']} permissions={['eteams.view', 'eteams.manage_team', 'system.manage_roles']} />}>
+              <Route path="/dashboard/e-teams" element={<ETeamsPortalPage />} />
+            </Route>
             <Route path="/dashboard/library" element={<LibraryPage />} />
             <Route path="/dashboard/gallery" element={<GalleryPage />} />
             <Route path="/dashboard/elections" element={<ElectionsPage />} />

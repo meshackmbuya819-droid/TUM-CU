@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import { authenticate, loadPermissions, requirePermission } from '../../../middleware/auth.middleware';
+import { calendarImportController } from '../controllers/calendar-import.controller';
+const router = Router();
+router.use(authenticate, loadPermissions);
+router.post('/extract-image', rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false }), requirePermission('events.create'), calendarImportController.extract);
+router.get('/pending', requirePermission('events.view'), calendarImportController.listPending);
+router.post('/:id/approve', requirePermission('events.approve'), calendarImportController.approve);
+router.post('/:id/reject', requirePermission('events.approve'), calendarImportController.reject);
+export default router;

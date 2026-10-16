@@ -17,6 +17,7 @@ import membershipRoutes from './modules/membership/routes/membership.routes';
 import meetingsRoutes from './modules/meetings/routes/meetings.routes';
 import expensesRoutes from './modules/expenses/routes/expenses.routes';
 import eventsRoutes from './modules/events/routes/events.routes';
+import calendarImportRoutes from './modules/calendar-import/routes/calendar-import.routes';
 import ministriesRoutes from './modules/ministries/routes/ministries.routes';
 import ministryMembersRoutes from './modules/ministry-members/routes/ministry-members.routes';
 import adminRoutes from './modules/admin/routes/admin.routes';
@@ -126,6 +127,7 @@ export function createApp() {
   api.use('/meetings', meetingsRoutes);
   api.use('/attendance', attendanceRoutes);
   api.use('/events', eventsRoutes);
+  api.use('/calendar-imports', calendarImportRoutes);
   api.use('/prayer-requests', prayerRequestsRoutes);
   api.use('/notifications', notificationsRoutes);
   api.use('/bible-study-groups', generatedModules.bibleStudyGroupsRoutes);
