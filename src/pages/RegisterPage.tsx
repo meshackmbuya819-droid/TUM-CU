@@ -206,10 +206,10 @@ export function RegisterPage() {
         <div
           className="w-full rounded-3xl p-6 sm:p-9 shadow-2xl transition-all"
           style={{
-            background: 'rgba(255, 255, 255, 0.14)',
+            background: 'rgba(7, 55, 31, 0.76)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255, 255, 255, 0.25)',
+            border: '1px solid rgba(167, 243, 208, 0.30)',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
           }}
         >
@@ -307,15 +307,15 @@ export function RegisterPage() {
                   Membership Category
                 </label>
                 <select
-                  className="w-full rounded-xl border border-white/30 bg-black/40 px-3.5 py-2.5 text-sm font-medium text-white shadow-inner focus:border-gold-400 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   value={form.membership_type}
                   onChange={(e) =>
                     update('membership_type', e.target.value as RegisterPayload['membership_type'])
                   }
                 >
-                  <option value="full" className="bg-slate-900 text-white">🎓 Full Member (TUM Student on Campus)</option>
-                  <option value="associate" className="bg-slate-900 text-white">🤝 Associate Member (Alumni, Graduate, Staff, Patron)</option>
-                  <option value="special" className="bg-slate-900 text-white">🌍 International / Global Member (Worldwide Affiliate / Partner)</option>
+                  <option value="full" className="bg-white text-slate-900">🎓 Full Member (TUM Student on Campus)</option>
+                  <option value="associate" className="bg-white text-slate-900">🤝 Associate Member (Alumni, Graduate, Staff, Patron)</option>
+                  <option value="special" className="bg-white text-slate-900">🌍 International / Global Member (Worldwide Affiliate / Partner)</option>
                 </select>
               </div>
 
@@ -325,12 +325,12 @@ export function RegisterPage() {
                     Country of Residence
                   </label>
                   <select
-                    className="w-full rounded-xl border border-white/30 bg-black/40 px-3.5 py-2.5 text-sm font-medium text-white shadow-inner focus:border-gold-400 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     value={form.country || 'Kenya'}
                     onChange={(e) => update('country', e.target.value)}
                   >
                     {COUNTRIES.map((c) => (
-                      <option key={c} value={c} className="bg-slate-900 text-white">
+                      <option key={c} value={c} className="bg-white text-slate-900">
                         {c}
                       </option>
                     ))}
@@ -361,23 +361,23 @@ export function RegisterPage() {
                       Academic Department / Faculty (TUM)
                     </label>
                     <select
-                      className="w-full rounded-xl border border-white/30 bg-black/40 px-3.5 py-2.5 text-sm text-white shadow-inner focus:border-gold-400 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       value={form.department ?? 'Department of Computing and Informatics'}
                       onChange={(e) => update('department', e.target.value)}
                     >
-                      <option value="Department of Computing and Informatics" className="bg-slate-900 text-white">Department of Computing and Informatics</option>
-                      <option value="Department of Electrical and Electronic Engineering" className="bg-slate-900 text-white">Department of Electrical and Electronic Engineering</option>
-                      <option value="Department of Mechanical and Automotive Engineering" className="bg-slate-900 text-white">Department of Mechanical and Automotive Engineering</option>
-                      <option value="Department of Civil and Building Engineering" className="bg-slate-900 text-white">Department of Civil and Building Engineering</option>
-                      <option value="Department of Mathematics and Physics" className="bg-slate-900 text-white">Department of Mathematics and Physics</option>
-                      <option value="Department of Pure and Applied Sciences" className="bg-slate-900 text-white">Department of Pure and Applied Sciences</option>
-                      <option value="Department of Business Administration" className="bg-slate-900 text-white">Department of Business Administration</option>
-                      <option value="Department of Accounting and Finance" className="bg-slate-900 text-white">Department of Accounting and Finance</option>
-                      <option value="Department of Hospitality and Tourism Management" className="bg-slate-900 text-white">Department of Hospitality and Tourism Management</option>
-                      <option value="Department of Medical Sciences" className="bg-slate-900 text-white">Department of Medical Sciences</option>
-                      <option value="Department of Environment and Health Sciences" className="bg-slate-900 text-white">Department of Environment and Health Sciences</option>
-                      <option value="Department of Media and Graphic Design" className="bg-slate-900 text-white">Department of Media and Graphic Design</option>
-                      <option value="Department of Humanities and Social Sciences" className="bg-slate-900 text-white">Department of Humanities and Social Sciences</option>
+                      <option value="Department of Computing and Informatics" className="bg-white text-slate-900">Department of Computing and Informatics</option>
+                      <option value="Department of Electrical and Electronic Engineering" className="bg-white text-slate-900">Department of Electrical and Electronic Engineering</option>
+                      <option value="Department of Mechanical and Automotive Engineering" className="bg-white text-slate-900">Department of Mechanical and Automotive Engineering</option>
+                      <option value="Department of Civil and Building Engineering" className="bg-white text-slate-900">Department of Civil and Building Engineering</option>
+                      <option value="Department of Mathematics and Physics" className="bg-white text-slate-900">Department of Mathematics and Physics</option>
+                      <option value="Department of Pure and Applied Sciences" className="bg-white text-slate-900">Department of Pure and Applied Sciences</option>
+                      <option value="Department of Business Administration" className="bg-white text-slate-900">Department of Business Administration</option>
+                      <option value="Department of Accounting and Finance" className="bg-white text-slate-900">Department of Accounting and Finance</option>
+                      <option value="Department of Hospitality and Tourism Management" className="bg-white text-slate-900">Department of Hospitality and Tourism Management</option>
+                      <option value="Department of Medical Sciences" className="bg-white text-slate-900">Department of Medical Sciences</option>
+                      <option value="Department of Environment and Health Sciences" className="bg-white text-slate-900">Department of Environment and Health Sciences</option>
+                      <option value="Department of Media and Graphic Design" className="bg-white text-slate-900">Department of Media and Graphic Design</option>
+                      <option value="Department of Humanities and Social Sciences" className="bg-white text-slate-900">Department of Humanities and Social Sciences</option>
                     </select>
                   </div>
 
@@ -386,15 +386,15 @@ export function RegisterPage() {
                       Year of Study
                     </label>
                     <select
-                      className="w-full rounded-xl border border-white/30 bg-black/40 px-3.5 py-2.5 text-sm text-white shadow-inner focus:border-gold-400 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       value={form.year_of_study ?? 1}
                       onChange={(e) => update('year_of_study', Number(e.target.value))}
                     >
-                      <option value={1} className="bg-slate-900 text-white">Year 1 (Freshman / First Year)</option>
-                      <option value={2} className="bg-slate-900 text-white">Year 2 (Sophomore)</option>
-                      <option value={3} className="bg-slate-900 text-white">Year 3 (Junior)</option>
-                      <option value={4} className="bg-slate-900 text-white">Year 4 (Senior)</option>
-                      <option value={5} className="bg-slate-900 text-white">Year 5 (Architecture / Engineering)</option>
+                      <option value={1} className="bg-white text-slate-900">Year 1 (Freshman / First Year)</option>
+                      <option value={2} className="bg-white text-slate-900">Year 2 (Sophomore)</option>
+                      <option value={3} className="bg-white text-slate-900">Year 3 (Junior)</option>
+                      <option value={4} className="bg-white text-slate-900">Year 4 (Senior)</option>
+                      <option value={5} className="bg-white text-slate-900">Year 5 (Architecture / Engineering)</option>
                     </select>
                   </div>
                 </>

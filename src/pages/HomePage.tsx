@@ -245,13 +245,13 @@ export function HomePage() {
           {backdropSlides.map((slide, idx) => (
             <div
               key={slide.id || idx}
-              className={`absolute inset-0 bg-cover bg-no-repeat transform-gpu transition-all duration-1000 ease-in-out ${
+              className={`landing-backdrop-slide absolute inset-0 bg-cover bg-no-repeat transform-gpu transition-all duration-1000 ease-in-out ${
                 idx === currentBackdropIdx ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
               }`}
               style={{
                 backgroundImage: `url(${slide.src})`,
-                backgroundPosition: 'center 25%',
-                filter: `blur(${bgBlurPx}px)`,
+                filter: `blur(${Math.min(Math.max(bgBlurPx, 0), 2)}px)`,
+                transform: idx === currentBackdropIdx ? 'scale(1.035)' : 'scale(1.07)',
               }}
             />
           ))}
@@ -259,13 +259,12 @@ export function HomePage() {
 
         {/* Ambient Overlays & Scrim for perfect contrast and readability */}
         <div
-          className="absolute inset-0 pointer-events-none transition-opacity duration-700"
+          className="landing-backdrop-scrim absolute inset-0 pointer-events-none transition-opacity duration-700"
           style={{
-            background: 'linear-gradient(to bottom, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.58) 50%, rgba(248,251,249,0.95) 100%)',
-            opacity: bgOpacity,
+            opacity: Math.min(bgOpacity, 0.58),
           }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.8),transparent_60%),radial-gradient(ellipse_at_bottom_right,rgba(255,255,255,0.7),transparent_60%)] pointer-events-none" />
+        <div className="landing-backdrop-glow absolute inset-0 pointer-events-none" />
 
         {/* Backdrop Switcher Indicator (Admin-configurable 5 pictures) */}
         <div className="relative z-10 pt-4 px-5 sm:px-8 max-w-7xl mx-auto w-full flex items-center justify-between">
@@ -294,8 +293,8 @@ export function HomePage() {
         </div>
 
         {/* Hero Main Content */}
-        <section className="relative px-5 pb-16 pt-10 sm:px-6 lg:pt-16">
-          <div className="page-shell relative grid items-center gap-12 lg:grid-cols-[1.02fr_.98fr]">
+        <section className="relative px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10 lg:pt-16">
+          <div className="page-shell relative grid items-center gap-8 sm:gap-12 lg:grid-cols-[1.02fr_.98fr]">
             <div className="relative z-10">
               <span className="eyebrow shadow-xs bg-white/95 backdrop-blur-md border border-primary-200">
                 <Sparkles size={14} className="text-primary-700" /> A community on mission

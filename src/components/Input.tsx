@@ -27,10 +27,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
           className={clsx(
-            'rounded-[var(--radius-input)] border bg-white/60 px-3.5 py-3 text-sm outline-none backdrop-blur-md transition-all',
-            'focus:border-primary-500 focus:bg-white/80 focus:ring-2 focus:ring-primary-300/40',
-            'dark:bg-slate-800/80 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:bg-slate-800 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/30',
-            error ? 'border-danger' : 'border-white/80',
+            'rounded-[var(--radius-input)] border bg-white px-3.5 py-3 text-sm text-slate-900 placeholder:text-slate-500 outline-none transition-all shadow-sm border-slate-300',
+            'focus:border-primary-600 focus:bg-white focus:ring-2 focus:ring-primary-300/50 focus-visible:ring-2',
+            'dark:bg-slate-900 dark:border-slate-600 dark:text-slate-100 dark:placeholder-slate-400 dark:focus:bg-slate-900 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/30',
+            error ? 'border-danger' : 'border-slate-300 dark:border-slate-600',
             className
           )}
           {...props}
