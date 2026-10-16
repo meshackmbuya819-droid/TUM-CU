@@ -177,8 +177,17 @@ export class AdminService {
     const meetings = await query<any[]>('SELECT * FROM meetings');
     const meetingsAwaiting = meetings.filter((m) => m.status === 'awaiting_minutes');
 
-    // 5. Finance resolutions
-    const financeResolutions = await query<any[]>('SELECT * FROM finance_resolutions');
+    // 5. Finance resolutions are optional in some deployed schemas. The
+    // migrations bundled with this release do not create finance_resolutions;
+    // check for it before querying so the whole dashboard does not return 500.
+    const financeTable = await query<any[]>(
+      `SELECT COUNT(*) AS table_count
+       FROM information_schema.tables
+       WHERE table_schema = DATABASE() AND table_name = 'finance_resolutions'`
+    );
+    const financeResolutions = Number(financeTable[0]?.table_count ?? 0) > 0
+      ? await query<any[]>('SELECT * FROM finance_resolutions')
+      : [];
     const pendingFinance = financeResolutions.filter((f) => f.status === 'pending_signatures');
 
     // 6. Upcoming events / schedule

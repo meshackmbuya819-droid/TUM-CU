@@ -169,7 +169,7 @@ export class LandingMediaService {
            background_blur_px = VALUES(background_blur_px),
            background_title = VALUES(background_title),
            last_updated_by = VALUES(last_updated_by),
-           updated_at = VALUES(updated_at)`,
+           updated_at = CURRENT_TIMESTAMP`,
         {
           id: 'main',
           rotate_interval_ms: config.rotateIntervalMs || 4000,
@@ -178,7 +178,7 @@ export class LandingMediaService {
           background_blur_px: config.backgroundImage?.blurPx ?? 1,
           background_title: config.backgroundImage?.title || 'TUM Main Entrance Gate Monument',
           last_updated_by: config.lastUpdatedBy || 'Administrator',
-          updated_at: new Date().toISOString(),
+          updated_at: new Date(),
         }
       );
 
