@@ -38,6 +38,7 @@ import {
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { UploadCalendarModal } from '@/components/UploadCalendarModal';
+import { CalendarImageImportPanel } from '@/components/CalendarImageImportPanel';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -97,8 +98,8 @@ export function EventsProgrammesAdmin() {
         topic: eventData.topic || null,
         location: eventData.location || eventData.venue || 'Main Sanctuary',
         status: eventData.status || 'approved',
-        start_at: eventData.date ? `${eventData.date}T${eventData.start_time || '17:00'}:00.000Z` : new Date().toISOString(),
-        end_at: eventData.date ? `${eventData.date}T${eventData.end_time || '19:00'}:00.000Z` : new Date().toISOString(),
+        start_at: eventData.date ? `${eventData.date}T${eventData.start_time || '17:00'}:00+03:00` : new Date().toISOString(),
+        end_at: eventData.date ? `${eventData.date}T${eventData.end_time || '19:00'}:00+03:00` : new Date().toISOString(),
       };
 
       if (eventData.id) {
@@ -110,6 +111,8 @@ export function EventsProgrammesAdmin() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['public-events'] });
+      queryClient.invalidateQueries({ queryKey: ['events', 'public'] });
       setIsEventModalOpen(false);
       setEditingEvent(null);
       showFeedback(vars.id ? 'Event updated successfully!' : 'Event created successfully!');
@@ -126,6 +129,8 @@ export function EventsProgrammesAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-events'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['public-events'] });
+      queryClient.invalidateQueries({ queryKey: ['events', 'public'] });
       showFeedback('Event deleted successfully!');
     },
     onError: (err: any) => {
@@ -183,6 +188,8 @@ export function EventsProgrammesAdmin() {
           <span className="font-semibold">{actionError}</span>
         </div>
       )}
+
+      <CalendarImageImportPanel />
 
       {/* Header & Sub-Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">

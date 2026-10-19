@@ -215,3 +215,37 @@ export const EVENT_TYPE_LABELS: Record<string, string> = {
   graduation_thanksgiving: 'Graduation Thanksgiving',
   other: 'Event',
 };
+
+
+export interface ExtractedCalendarEvent {
+  title: string;
+  date: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  venue?: string | null;
+  speaker?: string | null;
+  description?: string | null;
+  confidence?: number;
+}
+export interface CalendarEventImport {
+  id: string;
+  source_filename: string;
+  extracted_events: ExtractedCalendarEvent[];
+  review_status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+export async function extractCalendarImage(payload: { imageData: string; mimeType: string; filename: string }): Promise<CalendarEventImport> {
+  const { data } = await api.post<ApiResponse<CalendarEventImport>>('/calendar-imports/extract-image', payload);
+  return data.data;
+}
+export async function fetchPendingCalendarImports(): Promise<CalendarEventImport[]> {
+  const { data } = await api.get<ApiResponse<CalendarEventImport[]>>('/calendar-imports/pending');
+  return Array.isArray(data.data) ? data.data : [];
+}
+export async function approveCalendarImport(id: string): Promise<{ count: number }> {
+  const { data } = await api.post<ApiResponse<{ count: number }>>(`/calendar-imports/${id}/approve`);
+  return data.data;
+}
+export async function rejectCalendarImport(id: string, note?: string): Promise<void> {
+  await api.post(`/calendar-imports/${id}/reject`, { note });
+}

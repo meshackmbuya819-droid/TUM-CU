@@ -151,8 +151,9 @@ export function HomePage() {
     return () => clearInterval(timer);
   }, [backdropSlides.length, media?.rotateIntervalMs]);
 
-  const bgOpacity = media?.backgroundImage?.opacity ?? 0.82;
-  const bgBlurPx = media?.backgroundImage?.blurPx ?? 1;
+  // Legacy admin values were often too opaque/blurred. Clamp them so uploaded photos remain clear.
+  const bgOpacity = Math.min(Math.max(media?.backgroundImage?.opacity ?? 0.38, 0.18), 0.48);
+  const bgBlurPx = Math.min(Math.max(media?.backgroundImage?.blurPx ?? 0, 0), 0.35);
 
   // ---------------------------------------------------------------------------
   // DAILY MIDNIGHT SCRIPTURE (Deterministic rotation after every 12:00 AM)
@@ -239,19 +240,18 @@ export function HomePage() {
       {/* ===================================================================== */}
       {/* HERO SECTION WITH 5 ALTERNATING BACKDROP PICTURES                    */}
       {/* ===================================================================== */}
-      <div className="relative overflow-hidden min-h-[640px] lg:min-h-[720px] flex flex-col justify-between">
+      <div className="relative isolate overflow-hidden min-h-[620px] sm:min-h-[660px] lg:min-h-[720px] flex flex-col justify-between bg-emerald-50">
         {/* 5 Alternating Backdrop Layer: smooth crossfade transition */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {backdropSlides.map((slide, idx) => (
             <div
               key={slide.id || idx}
-              className={`landing-backdrop-slide absolute inset-0 bg-cover bg-no-repeat transform-gpu transition-all duration-1000 ease-in-out ${
+              className={`tecump-home-backdrop absolute inset-0 bg-cover bg-no-repeat transform-gpu transition-all duration-1000 ease-in-out ${
                 idx === currentBackdropIdx ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
               }`}
               style={{
                 backgroundImage: `url(${slide.src})`,
-                filter: `blur(${Math.min(Math.max(bgBlurPx, 0), 2)}px)`,
-                transform: idx === currentBackdropIdx ? 'scale(1.035)' : 'scale(1.07)',
+                filter: `blur(${bgBlurPx}px)`,
               }}
             />
           ))}
@@ -259,12 +259,13 @@ export function HomePage() {
 
         {/* Ambient Overlays & Scrim for perfect contrast and readability */}
         <div
-          className="landing-backdrop-scrim absolute inset-0 pointer-events-none transition-opacity duration-700"
+          className="absolute inset-0 pointer-events-none transition-opacity duration-700"
           style={{
-            opacity: Math.min(bgOpacity, 0.58),
+            background: 'linear-gradient(to bottom, rgba(235,248,239,0.10) 0%, rgba(235,248,239,0.16) 48%, rgba(242,249,244,0.52) 100%)',
+            opacity: bgOpacity,
           }}
         />
-        <div className="landing-backdrop-glow absolute inset-0 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(0,70,30,0.08),transparent_58%),radial-gradient(ellipse_at_bottom_right,rgba(255,255,255,0.18),transparent_60%)] pointer-events-none" />
 
         {/* Backdrop Switcher Indicator (Admin-configurable 5 pictures) */}
         <div className="relative z-10 pt-4 px-5 sm:px-8 max-w-7xl mx-auto w-full flex items-center justify-between">
@@ -293,8 +294,8 @@ export function HomePage() {
         </div>
 
         {/* Hero Main Content */}
-        <section className="relative px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10 lg:pt-16">
-          <div className="page-shell relative grid items-center gap-8 sm:gap-12 lg:grid-cols-[1.02fr_.98fr]">
+        <section className="relative px-5 pb-16 pt-10 sm:px-6 lg:pt-16">
+          <div className="page-shell relative grid items-center gap-12 lg:grid-cols-[1.02fr_.98fr]">
             <div className="relative z-10">
               <span className="eyebrow shadow-xs bg-white/95 backdrop-blur-md border border-primary-200">
                 <Sparkles size={14} className="text-primary-700" /> A community on mission

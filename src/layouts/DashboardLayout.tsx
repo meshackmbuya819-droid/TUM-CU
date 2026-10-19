@@ -13,6 +13,7 @@ import {
   Compass,
   Download,
   Calendar,
+  Award,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -32,6 +33,7 @@ import { fetchPendingApplications } from '@/features/membership/membership.api';
 const coreNavItems = [
   { to: '/dashboard', label: 'Home', icon: Home, end: true },
   { to: '/dashboard/calendar', label: 'Events', icon: Calendar },
+  { to: '/dashboard/leaders', label: 'Leaders', icon: Award },
   { to: '/dashboard/tumcu', label: 'TUMCU', icon: Church },
   { to: '/dashboard/membership', label: 'Membership', icon: Users },
   { to: '/dashboard/prayer', label: 'Prayer', icon: HandHeart },

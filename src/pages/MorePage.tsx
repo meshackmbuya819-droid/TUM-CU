@@ -57,6 +57,12 @@ export function MorePage() {
       title: 'Spiritual Resources & Governance',
       items: [
         {
+          to: '/dashboard/leaders',
+          label: 'Leadership Directory',
+          icon: ShieldCheck,
+          description: 'View appointed executive leaders and ministry leaders, their positions, and available profile photos.',
+        },
+        {
           to: '/library',
           label: 'Library & Resource Centre',
           icon: BookOpen,

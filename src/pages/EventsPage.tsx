@@ -46,6 +46,7 @@ import { isEventReminderSet, getGoogleCalendarUrl } from '@/features/events/even
 import { EventReminderModal } from '@/components/EventReminderModal';
 import { EventDetailsModal } from '@/components/EventDetailsModal';
 import { UploadCalendarModal } from '@/components/UploadCalendarModal';
+import { CalendarImageImportPanel } from '@/components/CalendarImageImportPanel';
 import { useAuthStore } from '@/store/auth.store';
 
 type ViewMode = 'grid' | 'timeline' | 'weekly';
@@ -316,6 +317,7 @@ export function EventsPage() {
 
       {/* Main Content Body */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 space-y-8">
+        {isAdmin && <CalendarImageImportPanel />}
         {/* 2. Spotlight: Next Imminent Gathering */}
         {imminentEvent && (
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden">
