@@ -1,5 +1,26 @@
 import { api, type ApiResponse } from '@/services/api';
 
+/**
+ * Resolve legacy relative upload paths against the API host when the frontend
+ * and backend are deployed on separate domains. New uploads are already
+ * returned as absolute backend URLs.
+ */
+export function resolveLeadershipAvatarUrl(url?: string | null): string | undefined {
+  if (!url || !url.trim()) return undefined;
+  const value = url.trim();
+  if (/^(https?:|data:|blob:)/i.test(value)) return value;
+
+  const apiBase = api.defaults.baseURL || '';
+  if (/^https?:\/\//i.test(apiBase)) {
+    try {
+      return new URL(value, `${new URL(apiBase).origin}/`).toString();
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}
+
 export interface LeadershipPosition {
   id: string;
   code: string;

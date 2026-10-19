@@ -26,6 +26,11 @@ import prayerImg from '@/assets/community/community-3.jpg';
 import outreachImg from '@/assets/community/community-4.jpg';
 import { MyResponsibilitiesWidget } from '@/components/MyResponsibilitiesWidget';
 import { fetchProgrammes, type WeeklyProgramme } from '@/features/events/events.api';
+import {
+  fetchLeadershipDirectory,
+  resolveLeadershipAvatarUrl,
+  type LeaderDirectoryItem,
+} from '@/features/leadership/leadership.api';
 
 interface MemberDashboardViewProps {
   user: any;
@@ -120,6 +125,22 @@ export function MemberDashboardView({
     queryFn: fetchProgrammes,
     staleTime: 60000,
   });
+
+  // The public roster is available to every signed-in member. Keep it separate
+  // from role-specific responsibilities so members can always see their leaders.
+  const { data: leadershipDirectory = [] } = useQuery<LeaderDirectoryItem[]>({
+    queryKey: ['leadership-directory'],
+    queryFn: fetchLeadershipDirectory,
+    staleTime: 30000,
+  });
+
+  const visibleLeaders = leadershipDirectory.filter(
+    (leader) =>
+      Boolean(leader.assignment_id) &&
+      leader.status === 'active' &&
+      Boolean(leader.full_name) &&
+      leader.full_name !== 'Not yet appointed'
+  );
 
   // Merge canonical fallback with dynamic programmes from admin portal
   const weeklyProgramme = CANONICAL_SCHEDULE.map((canonical) => {
@@ -220,6 +241,70 @@ export function MemberDashboardView({
           </div>
         </div>
       </div>
+
+      {/* Leadership directory: visible to all members, not only office holders */}
+      <section className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-black text-slate-900">Meet Your TUMCU Leaders</h3>
+            <p className="text-xs text-slate-500 mt-1">Current leaders and their constitutional responsibilities</p>
+          </div>
+          <Link to="/leaders" className="inline-flex items-center gap-1 text-xs font-bold text-[#006633] hover:underline">
+            Full leadership directory <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        {visibleLeaders.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {visibleLeaders.slice(0, 6).map((leader) => {
+              const avatar = resolveLeadershipAvatarUrl(leader.avatar_url);
+              const initials = (leader.full_name || 'TUMCU Leader')
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0])
+                .join('')
+                .toUpperCase();
+
+              return (
+                <div key={leader.assignment_id || leader.position_id} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 min-w-0">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-emerald-100 bg-emerald-50">
+                    <div className="absolute inset-0 grid place-items-center text-sm font-black text-[#006633]">
+                      {initials}
+                    </div>
+                    {avatar && (
+                      <img
+                        src={avatar}
+                        alt={leader.full_name}
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-slate-900" title={leader.full_name}>
+                      {leader.full_name}
+                    </p>
+                    <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-[#006633]">
+                      {leader.position_name}
+                    </p>
+                    <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                      {leader.category === 'executive' ? 'Executive Committee' : leader.category === 'ministry' ? 'Ministry Leadership' : 'Committee Leadership'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+            The current leadership roster is not available yet. Please check the full directory again shortly.
+          </p>
+        )}
+      </section>
 
       {/* Leadership Responsibilities if assigned */}
       <MyResponsibilitiesWidget />

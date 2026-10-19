@@ -30,6 +30,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import {
   fetchLeadershipDirectory,
+  resolveLeadershipAvatarUrl,
   type LeaderDirectoryItem,
 } from '@/features/leadership/leadership.api';
 import { useAuthStore } from '@/store/auth.store';
@@ -264,7 +265,7 @@ export function LeadersPage() {
                     <div className="flex items-start gap-3.5">
                       {leader.avatar_url ? (
                         <img
-                          src={leader.avatar_url}
+                          src={resolveLeadershipAvatarUrl(leader.avatar_url)}
                           alt={leader.full_name}
                           className="h-16 w-16 rounded-2xl object-cover border-2 border-emerald-100 dark:border-slate-700 shadow-xs shrink-0"
                           onError={(e) => {
