@@ -53,6 +53,9 @@ export function LeadersPage() {
   // Filtered leaders
   const filteredLeaders = useMemo(() => {
     return leaders.filter((leader) => {
+      // Only assigned, active office holders are presented as current leaders.
+      if (!leader.assignment_id || leader.status !== 'active' || !leader.full_name || leader.full_name === 'Not yet appointed') return false;
+
       // Category filter
       if (selectedCategory === 'executive' && leader.category !== 'executive') return false;
       if (selectedCategory === 'committee' && leader.category !== 'committee') return false;
@@ -75,11 +78,12 @@ export function LeadersPage() {
 
   // Statistics
   const stats = useMemo(() => {
-    const executiveCount = leaders.filter((l) => l.category === 'executive').length;
-    const committeeCount = leaders.filter((l) => l.category === 'committee').length;
-    const ministryCount = leaders.filter((l) => l.category === 'ministry').length;
+    const activeLeaders = leaders.filter((l) => Boolean(l.assignment_id) && l.status === 'active' && Boolean(l.full_name) && l.full_name !== 'Not yet appointed');
+    const executiveCount = activeLeaders.filter((l) => l.category === 'executive').length;
+    const committeeCount = activeLeaders.filter((l) => l.category === 'committee').length;
+    const ministryCount = activeLeaders.filter((l) => l.category === 'ministry').length;
     return {
-      total: leaders.length,
+      total: activeLeaders.length,
       executive: executiveCount,
       committee: committeeCount,
       ministry: ministryCount,
@@ -263,28 +267,26 @@ export function LeadersPage() {
                   <div className="space-y-3.5">
                     {/* Header with Photo/Avatar and Category Badge */}
                     <div className="flex items-start gap-3.5">
-                      {leader.avatar_url ? (
-                        <img
-                          src={resolveLeadershipAvatarUrl(leader.avatar_url)}
-                          alt={leader.full_name}
-                          className="h-16 w-16 rounded-2xl object-cover border-2 border-emerald-100 dark:border-slate-700 shadow-xs shrink-0"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div
-                          className={`h-16 w-16 rounded-2xl text-white font-black text-lg grid place-items-center shrink-0 shadow-xs border-2 ${
-                            isExecutive
-                              ? 'bg-gradient-to-br from-emerald-800 to-primary-950 border-emerald-200 dark:border-emerald-700'
-                              : isMinistry
-                              ? 'bg-gradient-to-br from-blue-700 to-slate-900 border-blue-200 dark:border-blue-700'
-                              : 'bg-gradient-to-br from-amber-700 to-slate-900 border-amber-200 dark:border-amber-700'
-                          }`}
-                        >
-                          {initials}
-                        </div>
-                      )}
+                      <div
+                        className={`relative h-16 w-16 overflow-hidden rounded-2xl text-white font-black text-lg grid place-items-center shrink-0 shadow-xs border-2 ${
+                          isExecutive
+                            ? 'bg-gradient-to-br from-emerald-800 to-primary-950 border-emerald-200 dark:border-emerald-700'
+                            : isMinistry
+                            ? 'bg-gradient-to-br from-blue-700 to-slate-900 border-blue-200 dark:border-blue-700'
+                            : 'bg-gradient-to-br from-amber-700 to-slate-900 border-amber-200 dark:border-amber-700'
+                        }`}
+                      >
+                        <span aria-hidden="true">{initials}</span>
+                        {leader.avatar_url && (
+                          <img
+                            src={resolveLeadershipAvatarUrl(leader.avatar_url)}
+                            alt={`${leader.full_name} profile`}
+                            loading="lazy"
+                            className="absolute inset-0 h-full w-full object-cover"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        )}
+                      </div>
 
                       <div className="flex-1 min-w-0">
                         <span className={`inline-block rounded-md text-[10px] font-black uppercase tracking-wider px-2 py-0.5 border mb-1 truncate max-w-full ${categoryBadge}`}>

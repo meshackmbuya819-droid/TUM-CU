@@ -1,0 +1,42 @@
+TECUMP CALENDAR SYNCHRONISATION + LEADERSHIP VISIBILITY PATCH
+
+This archive contains corrected source files only. It is not a complete project.
+
+WHAT IS INCLUDED
+- Calendar image/PDF extraction with strict date/time validation and duplicate removal.
+- Preview classification for each extracted event: New event, Proposed update, or Possible duplicate.
+- Approval-time re-checking against current event records before writing changes.
+- Updates matching events rather than blindly creating duplicates; missing poster fields do not erase existing event details.
+- Ambiguous matches are blocked for manual resolution in Events Management.
+- Event extraction remains pending until an authorised user approves it; rejection publishes nothing.
+- Calendar and public-event query refresh after approval; event-fetch failures are shown instead of silently appearing as an empty calendar.
+- Relative event banner and leader portrait URLs are resolved consistently.
+- Leadership directory and member dashboard display the active leadership roster and profile pictures with initials fallback.
+
+FILES
+backend/src/modules/calendar-import/services/calendar-import.service.ts
+backend/src/modules/calendar-import/routes/calendar-import.routes.ts
+src/components/CalendarImageImportPanel.tsx
+src/features/events/events.api.ts
+src/features/leadership/leadership.api.ts
+src/pages/LeadersPage.tsx
+src/pages/CalendarPage.tsx
+src/components/dashboards/MemberDashboardView.tsx
+
+SAFE INSTALL
+1. Back up the matching existing files.
+2. Extract this ZIP and copy the listed paths into the root of the existing TECUMP-FINAL-PRODUCTION project, replacing only those files.
+3. Do not reset, reseed, or drop the production database. No new migration is required by this patch; the existing calendar_event_imports table from migration 019 is expected.
+4. From the project root run: npm run lint
+5. Then run: npm run build
+6. Push to the existing GitHub branch connected to Railway only if both commands succeed.
+7. After Railway deploys, test with an authorised account: upload a clear image/PDF, inspect New event/Proposed update/Possible duplicate labels, approve a safe import, then verify the public/member calendar refreshes.
+
+CONFIGURATION
+Calendar extraction requires GEMINI_API_KEY in Railway Variables. GEMINI_MODEL may be set to a supported model; default is gemini-2.5-flash. Do not put secrets in source code or share them in chat.
+
+SAFETY NOTES
+- Uploading/extracting does not immediately publish events. Authorised approval is required.
+- Matching is based on normalized event title and date. Multiple same-title candidates are blocked rather than guessed.
+- If an update operation partially fails, the import remains pending; retrying should match already-created/updated records rather than intentionally creating another copy.
+- This is source-level validation, not a live Railway/database test. TypeScript check passed in the available environment. A full Vite build could not run here because the uploaded node_modules bundle lacks @rollup/rollup-linux-x64-gnu; run npm run build on your Windows machine before pushing.

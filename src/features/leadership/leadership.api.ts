@@ -10,15 +10,19 @@ export function resolveLeadershipAvatarUrl(url?: string | null): string | undefi
   const value = url.trim();
   if (/^(https?:|data:|blob:)/i.test(value)) return value;
 
+  // API uploads are served from the backend origin, not the current route.
+  // This also normalizes legacy values such as "uploads/photo.jpg".
   const apiBase = api.defaults.baseURL || '';
-  if (/^https?:\/\//i.test(apiBase)) {
-    try {
-      return new URL(value, `${new URL(apiBase).origin}/`).toString();
-    } catch {
-      return value;
-    }
+  try {
+    const browserOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+    const apiOrigin = /^https?:\/\//i.test(apiBase)
+      ? new URL(apiBase).origin
+      : browserOrigin;
+    const path = value.startsWith('/') ? value : `/${value}`;
+    return new URL(path, `${apiOrigin}/`).toString();
+  } catch {
+    return value.startsWith('/') ? value : `/${value}`;
   }
-  return value;
 }
 
 export interface LeadershipPosition {

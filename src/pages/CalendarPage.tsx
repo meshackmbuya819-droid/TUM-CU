@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CalendarDays,
@@ -16,6 +16,7 @@ import {
   Sparkles,
   Download,
   Upload,
+  Bell,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card } from '@/components/Card';
@@ -34,9 +35,12 @@ import {
   fetchPublicEvents,
   fetchCalendarInfo,
   downloadOfficialCalendar,
+  resolveEventBannerUrl,
   type PublicEvent,
 } from '@/features/events/events.api';
 import { UploadCalendarModal } from '@/components/UploadCalendarModal';
+import { EventDetailsModal } from '@/components/EventDetailsModal';
+import { EventReminderModal } from '@/components/EventReminderModal';
 
 export function CalendarPage() {
   const queryClient = useQueryClient();
@@ -53,6 +57,9 @@ export function CalendarPage() {
   const [expandedMeetingId, setExpandedMeetingId] = useState<string | null>(null);
   const [minutesDraft, setMinutesDraft] = useState('');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedEventForDetails, setSelectedEventForDetails] = useState<PublicEvent | null>(null);
+  const [selectedEventForReminder, setSelectedEventForReminder] = useState<PublicEvent | null>(null);
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
 
   // Fetch calendar download info
   const { data: calendarInfo } = useQuery({
@@ -67,7 +74,7 @@ export function CalendarPage() {
     enabled: Boolean(isAuthenticated && accessToken),
   });
 
-  const { data: events = [], isLoading: eventsLoading } = useQuery({
+  const { data: events = [], isLoading: eventsLoading, isError: eventsError, refetch: refetchEvents } = useQuery({
     queryKey: ['events', 'public'],
     queryFn: () => fetchPublicEvents(),
   });
@@ -99,6 +106,10 @@ export function CalendarPage() {
 
   // Calculate items
   const totalMeetings = meetings.length;
+  const sortedEvents = useMemo(
+    () => [...events].sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()),
+    [events]
+  );
   const totalEvents = events.length;
 
   return (
@@ -192,21 +203,27 @@ export function CalendarPage() {
             )}
             {eventsLoading ? (
               <div className="h-24 animate-pulse rounded-2xl bg-white" />
-            ) : events.length === 0 ? (
-              filter === 'events' && (
-                <Card variant="glass" className="p-8 text-center text-xs text-slate-500 bg-white">
-                  No upcoming events scheduled.
-                </Card>
-              )
+            ) : eventsError ? (
+              <Card variant="glass" className="p-6 text-center text-sm text-rose-700 bg-white">
+                <p>Calendar events could not be loaded. Your saved events have not been changed.</p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => refetchEvents()}>Try again</Button>
+              </Card>
+            ) : sortedEvents.length === 0 ? (
+              <Card variant="glass" className="p-8 text-center text-xs text-slate-500 bg-white">
+                No events are currently published.
+              </Card>
             ) : (
-              events.map((evt) => (
+              sortedEvents.map((evt) => (
                 <Card
                   key={evt.id}
                   variant="glass"
                   className="p-5 border border-slate-200/80 bg-white hover:border-primary-200 transition"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="space-y-1">
+                    {evt.banner_url && (
+                      <img src={resolveEventBannerUrl(evt.banner_url)} alt={`${evt.title} event banner`} loading="lazy" onError={(event) => { event.currentTarget.style.display = 'none'; }} className="h-24 w-full rounded-xl object-cover sm:h-20 sm:w-28 sm:shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="rounded-md bg-gold-100 px-2.5 py-0.5 text-xs font-bold text-gold-900">
                           {evt.event_type}
@@ -230,13 +247,20 @@ export function CalendarPage() {
                       </div>
                     </div>
 
-                    <div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
                       <Button
                         variant="outline"
                         className="text-xs font-bold px-3.5 py-1.5"
-                        onClick={() => alert(`Attendance confirmed for: ${evt.title}`)}
+                        onClick={() => setSelectedEventForDetails(evt)}
                       >
-                        <CheckCircle2 size={14} className="text-emerald-600" /> Confirm Attendance
+                        <Calendar size={14} className="text-emerald-600" /> View details
+                      </Button>
+                      <Button
+                        variant="primary"
+                        className="text-xs font-bold px-3.5 py-1.5"
+                        onClick={() => { setSelectedEventForReminder(evt); setIsReminderModalOpen(true); }}
+                      >
+                        <Bell size={14} /> Remind me
                       </Button>
                     </div>
                   </div>
@@ -416,6 +440,21 @@ export function CalendarPage() {
         )}
       </div>
 
+      <EventDetailsModal
+        isOpen={Boolean(selectedEventForDetails)}
+        event={selectedEventForDetails}
+        onClose={() => setSelectedEventForDetails(null)}
+        onOpenReminder={(event) => {
+          setSelectedEventForDetails(null);
+          setSelectedEventForReminder(event);
+          setIsReminderModalOpen(true);
+        }}
+      />
+      <EventReminderModal
+        isOpen={isReminderModalOpen}
+        event={selectedEventForReminder}
+        onClose={() => setIsReminderModalOpen(false)}
+      />
       {isAdmin && (
         <UploadCalendarModal
           isOpen={isUploadModalOpen}
