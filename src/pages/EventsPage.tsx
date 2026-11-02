@@ -59,6 +59,7 @@ export function EventsPage() {
     isSuperAdmin() ||
     hasPermission('events.create') ||
     hasPermission('events.edit') ||
+    hasPermission('events.approve') ||
     hasPermission('system.manage_roles') ||
     user?.role === 'super_admin' ||
     user?.role === 'admin';

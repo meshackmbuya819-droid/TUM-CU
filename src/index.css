@@ -190,3 +190,34 @@ html.dark .glass-nav {
     background-position: center 27%;
   }
 }
+
+
+/* Classical, eye-friendly public landing experience: quieter surfaces, readable rhythm,
+   restrained motion and responsive controls without changing page structure. */
+.tecump-home-backdrop { transition: opacity 900ms ease-in-out; }
+.page-shell { width: min(100% - 2rem, 80rem); }
+.section-pad { padding-block: clamp(3.25rem, 7vw, 5.75rem); }
+body { line-height: 1.65; }
+h1, h2, h3 { text-wrap: balance; letter-spacing: -0.025em; }
+p { text-wrap: pretty; }
+.surface-glass, .glass-nav {
+  backdrop-filter: blur(12px) saturate(115%);
+  -webkit-backdrop-filter: blur(12px) saturate(115%);
+}
+.photo-frame { border-radius: clamp(1.25rem, 3vw, 2rem); }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid rgba(181, 140, 12, .72); outline-offset: 3px; }
+@media (max-width: 639px) {
+  .section-pad { padding-block: 3.25rem; }
+  .page-shell { width: min(100% - 1.5rem, 80rem); }
+  .tecump-home-backdrop { background-position: center 30%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
