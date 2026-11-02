@@ -21,7 +21,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useViewAsStore, type SimulatedRole } from '@/store/viewAs.store';
 import { fetchMyMembershipStatus } from '@/features/membership/membership.api';
 import { fetchMyMinistries } from '@/features/ministries/ministries.api';
-import { fetchDashboardSummary } from '@/features/admin/admin.api';
+import { fetchDashboardSummary, fetchSystemHealth } from '@/features/admin/admin.api';
 import { MemberDashboardView } from '@/components/dashboards/MemberDashboardView';
 import { MinistryLeaderDashboardView } from '@/components/dashboards/MinistryLeaderDashboardView';
 import { SecretaryDashboardView } from '@/components/dashboards/SecretaryDashboardView';
@@ -62,11 +62,20 @@ export function DashboardOverviewPage() {
     hasPermission('membership.view_all') ||
     hasPermission('finance.view');
 
-  const { data: summaryData } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['admin-dashboard-summary'],
     queryFn: fetchDashboardSummary,
     enabled: canQueryProtected && canSeeAdministrativeSummary,
     staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const { data: summaryData } = summaryQuery;
+  const systemHealthQuery = useQuery({
+    queryKey: ['admin-system-health'],
+    queryFn: fetchSystemHealth,
+    enabled: canQueryProtected && canSeeAdministrativeSummary,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
 
   // Calculate user's effective role
@@ -176,6 +185,11 @@ export function DashboardOverviewPage() {
           applicationsCount={summaryData?.stats?.pending_applications ?? 0}
           vacantPositionsCount={summaryData?.stats?.vacancies_count ?? 0}
           financeApprovalsCount={summaryData?.stats?.finance_awaiting_action ?? 0}
+          dataLoading={summaryQuery.isLoading}
+          dataError={summaryQuery.isError}
+          systemHealth={systemHealthQuery.data}
+          systemHealthLoading={systemHealthQuery.isLoading}
+          systemHealthError={systemHealthQuery.isError}
           onOpenAssignWizard={() => setIsAssignWizardOpen(true)}
           onOpenQrModal={() => setIsQrModalOpen(true)}
         />

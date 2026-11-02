@@ -28,6 +28,11 @@ interface ExecutiveDashboardViewProps {
   applicationsCount?: number;
   vacantPositionsCount?: number;
   financeApprovalsCount?: number;
+  dataLoading?: boolean;
+  dataError?: boolean;
+  systemHealth?: any;
+  systemHealthLoading?: boolean;
+  systemHealthError?: boolean;
   onOpenAssignWizard: () => void;
   onOpenQrModal: () => void;
 }
@@ -38,6 +43,11 @@ export function ExecutiveDashboardView({
   applicationsCount = 0,
   vacantPositionsCount = 0,
   financeApprovalsCount = 0,
+  dataLoading = false,
+  dataError = false,
+  systemHealth,
+  systemHealthLoading = false,
+  systemHealthError = false,
   onOpenAssignWizard,
   onOpenQrModal,
 }: ExecutiveDashboardViewProps) {
@@ -156,7 +166,7 @@ export function ExecutiveDashboardView({
               <span className="flex items-center gap-1.5 text-xs font-bold text-rose-700">
                 <span className="h-2 w-2 rounded-full bg-rose-500" /> Applications
               </span>
-              <span className="text-xs font-black text-rose-900">{applicationsCount} pending</span>
+              <span className="text-xs font-black text-rose-900">{dataLoading ? 'Loading…' : dataError ? 'Unavailable' : `${applicationsCount} pending`}</span>
             </div>
             <p className="text-[11px] text-slate-500">New students applying for official fellowship membership.</p>
             <Link
@@ -173,7 +183,7 @@ export function ExecutiveDashboardView({
               <span className="flex items-center gap-1.5 text-xs font-bold text-amber-700">
                 <span className="h-2 w-2 rounded-full bg-amber-500" /> Leadership
               </span>
-              <span className="text-xs font-black text-amber-900">{vacantPositionsCount} positions</span>
+              <span className="text-xs font-black text-amber-900">{dataLoading ? 'Loading…' : dataError ? 'Unavailable' : `${vacantPositionsCount} positions`}</span>
             </div>
             <p className="text-[11px] text-slate-500">Open leadership positions requiring appointment or handover.</p>
             <Link
@@ -190,7 +200,7 @@ export function ExecutiveDashboardView({
               <span className="flex items-center gap-1.5 text-xs font-bold text-amber-700">
                 <span className="h-2 w-2 rounded-full bg-amber-500" /> Finance
               </span>
-              <span className="text-xs font-black text-amber-900">{financeApprovalsCount} pending</span>
+              <span className="text-xs font-black text-amber-900">{dataLoading ? 'Loading…' : dataError ? 'Unavailable' : `${financeApprovalsCount} pending`}</span>
             </div>
             <p className="text-[11px] text-slate-500">Financial resolutions awaiting executive signatory ratifications.</p>
             <Link
@@ -207,9 +217,9 @@ export function ExecutiveDashboardView({
               <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" /> Systems
               </span>
-              <span className="text-xs font-black text-emerald-900">100% Operational</span>
+              <span className={`text-xs font-black ${systemHealthError ? 'text-rose-900' : systemHealthLoading ? 'text-slate-600' : systemHealth?.database?.status === 'healthy' && systemHealth?.auth?.status === 'healthy' ? 'text-emerald-900' : 'text-amber-900'}`}>{systemHealthLoading ? 'Checking…' : systemHealthError ? 'Unavailable' : systemHealth?.database?.status === 'healthy' && systemHealth?.auth?.status === 'healthy' ? 'Operational' : 'Needs review'}</span>
             </div>
-            <p className="text-[11px] text-slate-500">Database, authentication and role matrix healthy.</p>
+            <p className="text-[11px] text-slate-500">{systemHealthError ? 'System diagnostics could not be retrieved.' : systemHealthLoading ? 'Checking database and authentication…' : `Database: ${systemHealth?.database?.status || 'unknown'} · Authentication: ${systemHealth?.auth?.status || 'unknown'}`}</p>
             <Link
               to="/dashboard/admin?tab=system"
               className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 pt-1"

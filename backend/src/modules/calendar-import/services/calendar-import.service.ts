@@ -26,11 +26,7 @@ type ImportRow = {
   created_at: string;
 };
 const eventsService = new EventsService();
-const validDate = (v: unknown) => {
-  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
-  const parsed = new Date(`${v}T00:00:00Z`);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === v;
-};
+const validDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T12:00:00Z`));
 const validTime = (v: unknown) => typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 function parseJson<T>(value: T | string): T {
   if (typeof value !== 'string') return value;
@@ -49,12 +45,20 @@ export class CalendarImportService {
     if (!apiKey) throw new BusinessRuleError('Calendar image extraction is not configured. Set GEMINI_API_KEY in Railway variables.');
 
     const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Read this TUMCU / TECUMP calendar poster. Extract each distinct dated event.
-Return ONLY JSON: {"events":[{"title":"...","date":"YYYY-MM-DD","start_time":"HH:mm or null","end_time":"HH:mm or null","venue":"... or null","speaker":"... or null","description":"... or null","confidence":0.0}]}.
-Use ISO dates and 24-hour times. Do not invent details. If the year is absent, infer ${new Date().getFullYear()} only when the poster clearly refers to that year; otherwise omit ambiguous events. Include only events with a recognizable title and date. confidence is 0..1.`;
+    // Use a currently supported multimodal Flash model first, then fall back to
+    // other image-capable models if the key/project has different availability.
+    const configuredModel = process.env.GEMINI_MODEL?.trim();
+    const models = [...new Set([
+      configuredModel,
+      'gemini-3.8-flash',
+      'gemini-3.6-flash',
+      'gemini-3.5-flash-lite',
+      'gemini-2.5-flash',
+    ].filter((value): value is string => Boolean(value)))];
+    const prompt = `Read this TUMCU / TECUMP calendar poster. Extract each distinct event that has a recognizable date. Return ONLY valid JSON in this exact shape: {\"events\":[{\"title\":\"...\",\"date\":\"YYYY-MM-DD\",\"start_time\":\"HH:mm or null\",\"end_time\":\"HH:mm or null\",\"venue\":\"... or null\",\"speaker\":\"... or null\",\"description\":\"... or null\",\"confidence\":0.0}]}. Convert unambiguous dates to 4-digit-year ISO dates. If the year is not printed, use ${new Date().getFullYear()} only when the poster clearly refers to the current year; otherwise do not guess and omit that event. Use 24-hour time. Do not invent missing speakers, venues, dates, or titles. Include only events with a confident title and date; confidence must be 0 to 1.`;
     let response: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
-    let lastProviderError: unknown;
-    for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite']) {
+    const modelErrors: string[] = [];
+    for (const model of models) {
       try {
         response = await ai.models.generateContent({
           model,
@@ -64,20 +68,24 @@ Use ISO dates and 24-hour times. Do not invent details. If the year is absent, i
           ] }],
           config: { responseMimeType: 'application/json', temperature: 0.1 },
         });
-        if (response?.text) break;
+        break;
       } catch (error) {
-        lastProviderError = error;
+        const err = error as { status?: number; message?: string };
+        const detail = String(err?.message || error).replace(/\s+/g, ' ').slice(0, 240);
+        modelErrors.push(`${model}: ${detail}`);
+        // Do not retry a bad/revoked key against every model.
+        if (err?.status === 401 || err?.status === 403) break;
       }
     }
-    if (!response?.text) {
-      const providerMessage = lastProviderError instanceof Error ? lastProviderError.message : '';
-      if (/quota|rate.?limit|resource.?exhausted/i.test(providerMessage)) {
-        throw new BusinessRuleError('Calendar image extraction is temporarily unavailable because the Gemini API quota/rate limit was reached. Check the Google AI project quota and try again later.');
+    if (!response) {
+      const diagnostics = modelErrors.join(' | ');
+      if (/API key|api_key|invalid.*key|permission|unauthorized|403|401/i.test(diagnostics)) {
+        throw new BusinessRuleError('Gemini rejected the API key or project permissions. In Railway, verify GEMINI_API_KEY, enable the Gemini API for that Google project, and ensure the key is allowed to use it.');
       }
-      if (/api key|permission|unauthorized|forbidden|not found|model/i.test(providerMessage)) {
-        throw new BusinessRuleError('Gemini could not access an enabled image-capable model. Verify GEMINI_API_KEY, project API access, and model availability in Railway.');
+      if (/quota|rate.?limit|resource.?exhausted|429/i.test(diagnostics)) {
+        throw new BusinessRuleError('Gemini image extraction quota/rate limit was reached. Check the Google AI project quota or billing, then retry.');
       }
-      throw new BusinessRuleError('Calendar image extraction is temporarily unavailable. Check the Gemini API configuration and try again.');
+      throw new BusinessRuleError(`No configured Gemini model could process calendar images. Check model access in Google AI Studio and Railway GEMINI_MODEL. Details: ${diagnostics}`);
     }
     const raw = response.text || '';
     let parsed: { events?: ExtractedEvent[] };
@@ -92,16 +100,13 @@ Use ISO dates and 24-hour times. Do not invent details. If the year is absent, i
       description: typeof e.description === 'string' ? e.description.trim().slice(0, 2000) : null,
       confidence: typeof e.confidence === 'number' ? Math.max(0, Math.min(1, e.confidence)) : 0.5,
     }));
-    const uniqueExtracted = extracted.filter((event, index, all) =>
-      all.findIndex((candidate) => candidate.title.toLowerCase() === event.title.toLowerCase() && candidate.date === event.date && candidate.start_time === event.start_time) === index
-    );
-    if (!uniqueExtracted.length) throw new BusinessRuleError('No events with valid dates were found. Check the image and try again.');
+    if (!extracted.length) throw new BusinessRuleError('No events with valid dates were found. Check the image and try again.');
     const id = uuidv4();
     await query(`INSERT INTO calendar_event_imports (id, source_filename, extracted_events, review_status, uploaded_by)
       VALUES (:id, :filename, :events, 'pending', :userId)`, {
-      id, filename: (input.filename || 'calendar-image').slice(0, 255), events: JSON.stringify(uniqueExtracted), userId: input.userId,
+      id, filename: (input.filename || 'calendar-image').slice(0, 255), events: JSON.stringify(extracted), userId: input.userId,
     });
-    return { id, source_filename: (input.filename || 'calendar-image').slice(0, 255), extracted_events: uniqueExtracted, review_status: 'pending', created_at: new Date().toISOString() };
+    return { id, source_filename: (input.filename || 'calendar-image').slice(0, 255), extracted_events: extracted, review_status: 'pending', created_at: new Date().toISOString() };
   }
 
   async listPending() {

@@ -214,45 +214,23 @@ export class AdminService {
   }
 
   async getSystemHealth() {
-    const users = await query<any[]>('SELECT * FROM users');
-    const assignments = await query<any[]>('SELECT * FROM leadership_assignments');
-    const positions = await query<any[]>('SELECT * FROM leadership_positions');
+    const startedAt = Date.now();
+    await query<any[]>('SELECT 1 AS ok');
+    const latencyMs = Date.now() - startedAt;
+    const assignments = await query<any[]>('SELECT status FROM leadership_assignments');
+    const positions = await query<any[]>('SELECT id FROM leadership_positions');
+    const jwtConfigured = Boolean(process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32);
 
     return {
-      database: {
-        status: 'healthy',
-        engine: 'MySQL 8.0 Primary + High-Speed In-Memory Transaction Engine',
-        latency_ms: 3,
-        connected: true,
-        tables_loaded: 28,
-        active_pool_connections: 5,
-        idle_pool_connections: 15,
-      },
-      auth: {
-        status: 'healthy',
-        jwt_token_version: 'v2-signed',
-        active_sessions_estimate: 24,
-        failed_login_attempts_24h: 1,
-        enforce_password_complexity: true,
-      },
+      database: { status: 'healthy', engine: 'MySQL', latency_ms: latencyMs, connected: true },
+      auth: { status: jwtConfigured ? 'healthy' : 'needs_review', jwt_configured: jwtConfigured },
       governance_engine: {
         status: 'healthy',
-        constitutional_enforcement_active: true,
         positions_defined: positions.length,
         active_assignments: assignments.filter((a) => a.status === 'active').length,
         vacancies_flagged: assignments.filter((a) => a.status === 'vacant').length,
-        financial_separation_of_powers: 'Article 15.3 Enforced (Treasurer cannot unilaterally authorize disbursements)',
       },
-      scheduler: {
-        status: 'healthy',
-        active_cron_jobs: ['membership_renewal_sweep', 'kesha_notifications', 'backup_snapshot'],
-        last_heartbeat: new Date().toISOString(),
-      },
-      audit_summary: {
-        events_recorded_today: 42,
-        security_alerts: 0,
-        unauthorized_access_attempts: 0,
-      },
+      checked_at: new Date().toISOString(),
     };
   }
 
