@@ -45,47 +45,34 @@ export class CalendarImportService {
     if (!apiKey) throw new BusinessRuleError('Calendar image extraction is not configured. Set GEMINI_API_KEY in Railway variables.');
 
     const ai = new GoogleGenAI({ apiKey });
-    // Use a currently supported multimodal Flash model first, then fall back to
-    // other image-capable models if the key/project has different availability.
-    const configuredModel = process.env.GEMINI_MODEL?.trim();
-    const models = [...new Set([
-      configuredModel,
-      'gemini-3.8-flash',
-      'gemini-3.6-flash',
-      'gemini-3.5-flash-lite',
-      'gemini-2.5-flash',
-    ].filter((value): value is string => Boolean(value)))];
-    const prompt = `Read this TUMCU / TECUMP calendar poster. Extract each distinct event that has a recognizable date. Return ONLY valid JSON in this exact shape: {\"events\":[{\"title\":\"...\",\"date\":\"YYYY-MM-DD\",\"start_time\":\"HH:mm or null\",\"end_time\":\"HH:mm or null\",\"venue\":\"... or null\",\"speaker\":\"... or null\",\"description\":\"... or null\",\"confidence\":0.0}]}. Convert unambiguous dates to 4-digit-year ISO dates. If the year is not printed, use ${new Date().getFullYear()} only when the poster clearly refers to the current year; otherwise do not guess and omit that event. Use 24-hour time. Do not invent missing speakers, venues, dates, or titles. Include only events with a confident title and date; confidence must be 0 to 1.`;
+    // Gemini model access differs by Google project. Allow an explicit Railway
+    // override and use current multimodal text-generation fallbacks.
+    const configuredModel = (process.env.GEMINI_MODEL || 'gemini-3.8-flash').trim();
+    const models = [...new Set([configuredModel, 'gemini-3.5-flash-lite', 'gemini-2.5-flash'])];
     let response: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
-    const modelErrors: string[] = [];
+    let lastModelError: unknown;
     for (const model of models) {
       try {
         response = await ai.models.generateContent({
-          model,
-          contents: [{ role: 'user', parts: [
-            { inlineData: { mimeType, data: base64 } },
-            { text: prompt },
-          ] }],
-          config: { responseMimeType: 'application/json', temperature: 0.1 },
+      model,
+      contents: [{ role: 'user', parts: [
+        { inlineData: { mimeType, data: base64 } },
+        { text: `Read this TUMCU / TECUMP calendar poster. Extract each distinct event that has a recognizable date. Return ONLY valid JSON in this exact shape: {"events":[{"title":"...","date":"YYYY-MM-DD","start_time":"HH:mm or null","end_time":"HH:mm or null","venue":"... or null","speaker":"... or null","description":"... or null","confidence":0.0}]}. Convert unambiguous dates to 4-digit-year ISO dates. If the year is not printed, use ${new Date().getFullYear()} only when the poster clearly refers to the current year; otherwise do not guess and omit that event. Use 24-hour time. Do not invent missing speakers, venues, dates, or titles. Include only events with a confident title and date; confidence must be 0 to 1.` },
+      ] }],
+      config: { responseMimeType: 'application/json', temperature: 0.1 },
         });
         break;
       } catch (error) {
-        const err = error as { status?: number; message?: string };
-        const detail = String(err?.message || error).replace(/\s+/g, ' ').slice(0, 240);
-        modelErrors.push(`${model}: ${detail}`);
-        // Do not retry a bad/revoked key against every model.
-        if (err?.status === 401 || err?.status === 403) break;
+        lastModelError = error;
+        const message = error instanceof Error ? error.message : String(error);
+        // Do not retry invalid credentials, quota exhaustion, or permission
+        // failures: changing models cannot repair those project-level errors.
+        if (/api.?key|unauthorized|permission|forbidden|quota|rate.?limit|billing/i.test(message)) throw error;
       }
     }
     if (!response) {
-      const diagnostics = modelErrors.join(' | ');
-      if (/API key|api_key|invalid.*key|permission|unauthorized|403|401/i.test(diagnostics)) {
-        throw new BusinessRuleError('Gemini rejected the API key or project permissions. In Railway, verify GEMINI_API_KEY, enable the Gemini API for that Google project, and ensure the key is allowed to use it.');
-      }
-      if (/quota|rate.?limit|resource.?exhausted|429/i.test(diagnostics)) {
-        throw new BusinessRuleError('Gemini image extraction quota/rate limit was reached. Check the Google AI project quota or billing, then retry.');
-      }
-      throw new BusinessRuleError(`No configured Gemini model could process calendar images. Check model access in Google AI Studio and Railway GEMINI_MODEL. Details: ${diagnostics}`);
+      const detail = lastModelError instanceof Error ? lastModelError.message : 'No compatible model responded.';
+      throw new BusinessRuleError(`Gemini image extraction failed for the configured and fallback models. Check GEMINI_API_KEY, Gemini API access and GEMINI_MODEL. ${detail.slice(0, 350)}`);
     }
     const raw = response.text || '';
     let parsed: { events?: ExtractedEvent[] };

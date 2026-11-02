@@ -1,21 +1,5 @@
 import { api, type ApiResponse } from '@/services/api';
 
-
-/** Resolve legacy event banner paths when the API is hosted on a separate origin. */
-export function resolveEventBannerUrl(url?: string | null): string | undefined {
-  if (!url || !url.trim()) return undefined;
-  const value = url.trim();
-  if (/^(https?:|data:|blob:)/i.test(value)) return value;
-  const apiBase = api.defaults.baseURL || '';
-  try {
-    const browserOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-    const apiOrigin = /^https?:\/\//i.test(apiBase) ? new URL(apiBase).origin : browserOrigin;
-    return new URL(value.startsWith('/') ? value : `/${value}`, `${apiOrigin}/`).toString();
-  } catch {
-    return value.startsWith('/') ? value : `/${value}`;
-  }
-}
-
 export interface PublicEvent {
   id: string;
   title: string;
@@ -74,13 +58,17 @@ export interface DownloadableCalendarInfo {
 
 /** Public endpoint — only approved/open/ongoing/completed events, fetches entire semester roster */
 export async function fetchPublicEvents(pageSize: number = 100): Promise<PublicEvent[]> {
-  const { data } = await api.get<any>('/events/public', { params: { pageSize } });
-  const rows = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
-  return rows.map((event: PublicEvent) => ({
-    ...event,
-    preacher: event.preacher || event.speaker || null,
-    theme: event.theme || event.topic || null,
-  }));
+  try {
+    const { data } = await api.get<any>('/events/public', {
+      params: { pageSize },
+    });
+    const rows = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+    return rows.map((event: PublicEvent) => ({ ...event, preacher: event.preacher || event.speaker || null, theme: event.theme || event.topic || null }));
+    return [];
+  } catch (err) {
+    console.error('Failed to fetch public events:', err);
+    return [];
+  }
 }
 
 /** Admin / Authenticated: fetch all events */
@@ -237,10 +225,7 @@ export interface ExtractedCalendarEvent {
   venue?: string | null;
   speaker?: string | null;
   description?: string | null;
-  event_type?: string | null;
   confidence?: number;
-  sync_action?: 'create' | 'update' | 'needs_review';
-  matched_event?: { id: string; title: string; date: string; start_at: string; location?: string | null; status?: string } | null;
 }
 export interface CalendarEventImport {
   id: string;
@@ -250,7 +235,14 @@ export interface CalendarEventImport {
   created_at: string;
 }
 export async function extractCalendarImage(payload: { imageData: string; mimeType: string; filename: string }): Promise<CalendarEventImport> {
-  const { data } = await api.post<ApiResponse<CalendarEventImport>>('/calendar-imports/extract-image', payload);
+  // Image analysis is an AI-bound operation and routinely takes longer than the
+  // 20-second default used by ordinary API requests. Keep the longer timeout
+  // scoped to this endpoint so normal UI requests still fail fast.
+  const { data } = await api.post<ApiResponse<CalendarEventImport>>(
+    '/calendar-imports/extract-image',
+    payload,
+    { timeout: 150_000 }
+  );
   return data.data;
 }
 export async function fetchPendingCalendarImports(): Promise<CalendarEventImport[]> {
